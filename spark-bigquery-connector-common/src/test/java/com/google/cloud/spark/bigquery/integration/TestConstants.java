@@ -43,6 +43,7 @@ import java.sql.Date;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.TimeZone;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -74,18 +75,21 @@ public class TestConstants {
   static final long SHAKESPEARE_TABLE_NUM_ROWS = 164656L;
   static final String PROJECT_ID =
       Preconditions.checkNotNull(
-          System.getenv("GOOGLE_CLOUD_PROJECT"),
+          Optional.ofNullable(System.getenv("GOOGLE_CLOUD_PROJECT"))
+              .orElse(System.getProperty("GOOGLE_CLOUD_PROJECT")),
           "Please set the GOOGLE_CLOUD_PROJECT env variable");
   static final String TEMPORARY_GCS_BUCKET_ENV_VARIABLE = "TEMPORARY_GCS_BUCKET";
   static final String BIGLAKE_CONNECTION_ID_ENV_VARIABLE = "BIGLAKE_CONNECTION_ID";
   static final String TEMPORARY_GCS_BUCKET =
       Preconditions.checkNotNull(
-          System.getenv(TEMPORARY_GCS_BUCKET_ENV_VARIABLE),
+          Optional.ofNullable(System.getenv(TEMPORARY_GCS_BUCKET_ENV_VARIABLE))
+              .orElse(System.getProperty(TEMPORARY_GCS_BUCKET_ENV_VARIABLE)),
           "Please set the %s env variable to point to a write enabled GCS bucket",
           TEMPORARY_GCS_BUCKET_ENV_VARIABLE);
   static final String BIGLAKE_CONNECTION_ID =
       Preconditions.checkNotNull(
-          System.getenv(BIGLAKE_CONNECTION_ID_ENV_VARIABLE),
+          Optional.ofNullable(System.getenv(BIGLAKE_CONNECTION_ID_ENV_VARIABLE))
+              .orElse(System.getProperty(BIGLAKE_CONNECTION_ID_ENV_VARIABLE)),
           "Please set the BIGLAKE_CONNECTION_ID env variable in order to create biglake table");
   static final String SHAKESPEARE_CSV_FILENAME = "shakespeare.csv";
   static final String SHAKESPEARE_JSON_FILENAME = "shakespeare.json";
