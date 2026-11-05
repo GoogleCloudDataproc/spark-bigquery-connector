@@ -2,9 +2,9 @@
 
 ## Next
 
-* PR #1542: Removed the remaining query pushdown classes (`SparkBigQueryPushdow>
-  `SupportsQueryPushdown`, `BigQueryPushdownException`, `BigQueryPushdownUnsupp>
-  and the `spark-bigquery-pushdown` modules, which have not been built since qu>
+* PR #1542: Removed the remaining query pushdown classes (`SparkBigQueryPushdown`,
+  `SupportsQueryPushdown`, `BigQueryPushdownException`, `BigQueryPushdownUnsupportedException`)
+  and the `spark-bigquery-pushdown` modules, which have not been built since query pushdown
   support was removed in 0.43.0 (PR #1367).
 
 ## 0.46.1 - 2026-11-04
