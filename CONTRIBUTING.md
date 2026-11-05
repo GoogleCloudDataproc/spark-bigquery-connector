@@ -73,10 +73,6 @@ DSv2 (Java) connectors under `spark-bigquery-dsv2/`:
   jars, each backed by a `*-bigquery-lib` module reused by the next-version
   connector.
 
-Pushdown variants under `spark-bigquery-pushdown/` add query pushdown support
-per Spark+Scala combination. They are built separately and are **not** driven
-by the root `dsv1*` / `dsv2*` profiles.
-
 Other:
 
 * `coverage` — Jacoco aggregator, activated by `-Pcoverage`.

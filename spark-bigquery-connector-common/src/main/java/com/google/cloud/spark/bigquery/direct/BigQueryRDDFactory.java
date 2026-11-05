@@ -16,7 +16,6 @@
 
 package com.google.cloud.spark.bigquery.direct;
 
-import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableDefinition;
@@ -27,8 +26,6 @@ import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
 import com.google.cloud.bigquery.connector.common.BigQueryTracerFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
-import com.google.cloud.bigquery.connector.common.ParameterMode;
-import com.google.cloud.bigquery.connector.common.QueryParameterHelper;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreator;
 import com.google.cloud.bigquery.connector.common.ReadSessionResponse;
 import com.google.cloud.bigquery.storage.v1.ReadSession;
@@ -37,7 +34,6 @@ import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
 import java.lang.reflect.Constructor;
 import java.util.List;
@@ -53,15 +49,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Wrapper class for generating BigQueryRDD. Extracted this logic out so that we can reuse it from
- * 1) Dsv1 buildScan 2) Dsv1 pushdown functionality 3) Dsv2 pushdown functionality
+ * Wrapper class for generating BigQueryRDD. Extracted this logic out so that it can be reused
+ * across the DataSource implementations.
  */
 public class BigQueryRDDFactory {
 
   private static final Logger log = LoggerFactory.getLogger(BigQueryRDDFactory.class);
-
-  private static final String QUERY_JOB_LABEL = "query_source";
-  private static final String QUERY_PUSHDOWN_JOB_LABEL_VALUE = "spark_query_pushdown";
 
   private final BigQueryClient bigQueryClient;
   private final SparkBigQueryConfig options;
@@ -80,54 +73,6 @@ public class BigQueryRDDFactory {
     this.bigQueryReadClientFactory = bigQueryReadClientFactory;
     this.bigQueryTracerFactory = bigQueryTracerFactory;
     this.sqlContext = sqlContext;
-  }
-
-  /**
-   * Creates RDD from the SQL string that is passed in. This functionality is invoked from the query
-   * pushdown module
-   */
-  public RDD<InternalRow> buildScanFromSQL(String sql) {
-    log.info("Materializing the following sql query to a BigQuery table: {}", sql);
-
-    TableInfo actualTable =
-        bigQueryClient.materializeQueryToTable(
-            sql,
-            options.getMaterializationExpirationTimeInMinutes(),
-            // Label to add to Query Job indicating that it was invoked as part of query pushdown
-            ImmutableMap.<String, String>builder()
-                .put(QUERY_JOB_LABEL, QUERY_PUSHDOWN_JOB_LABEL_VALUE)
-                .build(),
-            new QueryParameterHelper(ParameterMode.NONE, null, null));
-
-    TableDefinition actualTableDefinition = actualTable.getDefinition();
-
-    // We do require requiredColumns to be passed in for pushdown. If we don't, an
-    // ArrayIndexOutOfBounds
-    // exception is thrown
-    List<String> requiredColumns =
-        actualTableDefinition.getSchema().getFields().stream()
-            .map(Field::getName)
-            .collect(Collectors.toList());
-
-    log.info(
-        "Querying table {}, requiredColumns=[{}]",
-        actualTable.getTableId().getProject()
-            + ":"
-            + actualTable.getTableId().getDataset()
-            + ":"
-            + actualTable.getTableId().getTable(),
-        requiredColumns.toString());
-
-    ReadSessionCreator readSessionCreator =
-        new ReadSessionCreator(
-            options.toReadSessionCreatorConfig(), bigQueryClient, bigQueryReadClientFactory);
-
-    return (RDD<InternalRow>)
-        createRddFromTable(
-            actualTable.getTableId(),
-            readSessionCreator,
-            requiredColumns.toArray(new String[0]),
-            "");
   }
 
   // Creates BigQueryRDD from the BigQuery table that is passed in. Note that we return RDD<?>

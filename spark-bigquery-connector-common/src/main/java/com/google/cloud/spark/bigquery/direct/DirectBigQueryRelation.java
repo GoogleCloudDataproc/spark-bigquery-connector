@@ -157,10 +157,6 @@ public class DirectBigQueryRelation extends BigQueryRelation
         Filter.class);
   }
 
-  public BigQueryRDDFactory getBigQueryRDDFactory() {
-    return this.bigQueryRDDFactory;
-  }
-
   // VisibleForTesting
   String getCompiledFilter(Filter[] filters) {
     if (options.isCombinePushedDownFilters()) {
