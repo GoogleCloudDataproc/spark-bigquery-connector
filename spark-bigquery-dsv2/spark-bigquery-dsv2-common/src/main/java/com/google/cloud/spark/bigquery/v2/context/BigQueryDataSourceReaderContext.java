@@ -38,7 +38,6 @@ import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryUtil;
 import com.google.cloud.spark.bigquery.SparkFilterUtils;
-import com.google.cloud.spark.bigquery.direct.BigQueryRDDFactory;
 import com.google.cloud.spark.bigquery.metrics.DataOrigin;
 import com.google.cloud.spark.bigquery.metrics.SparkBigQueryReadSessionMetrics;
 import com.google.common.collect.ImmutableList;
@@ -99,7 +98,6 @@ public class BigQueryDataSourceReaderContext {
   private final SparkBigQueryConfig options;
   private final SQLContext sqlContext;
   private final SparkSession sparkSession;
-  private final BigQueryRDDFactory bigQueryRDDFactory;
   private final Optional<String> globalFilter;
   private final String applicationId;
   private final StructType fullSchema;
@@ -164,9 +162,6 @@ public class BigQueryDataSourceReaderContext {
     this.applicationId = applicationId;
     this.options = options;
     this.sqlContext = sqlContext;
-    this.bigQueryRDDFactory =
-        new BigQueryRDDFactory(
-            bigQueryClient, bigQueryReadClientFactory, bigQueryTracerFactory, options, sqlContext);
     resetReadSessionResponse();
   }
 
@@ -550,10 +545,6 @@ public class BigQueryDataSourceReaderContext {
 
   public TableId getTableId() {
     return tableId;
-  }
-
-  public BigQueryRDDFactory getBigQueryRddFactory() {
-    return this.bigQueryRDDFactory;
   }
 
   public TableInfo getTableInfo() {
