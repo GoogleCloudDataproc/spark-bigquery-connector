@@ -1,5 +1,7 @@
 # Release Notes
 
+## Next
+
 ## 0.46.1 - 2026-11-04
 
 * CVE-2026-89044, CVE-2026-100664, CVE-2026-100659: Netty was upgraded to version 4.2.19.Final
