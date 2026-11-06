@@ -630,36 +630,40 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         new org.apache.hadoop.fs.Path("/tmp/bq_integration_test_input_" + System.nanoTime());
     org.apache.hadoop.fs.FileSystem fs =
         inputDir.getFileSystem(spark.sparkContext().hadoopConfiguration());
-    try (OutputStream out =
-        fs.create(new org.apache.hadoop.fs.Path(inputDir, "test_data_for_streaming.json"))) {
-      out.write("{\"name\": \"spark\", \"age\": 100}".getBytes(StandardCharsets.UTF_8));
+    try {
+      try (OutputStream out =
+          fs.create(new org.apache.hadoop.fs.Path(inputDir, "test_data_for_streaming.json"))) {
+        out.write("{\"name\": \"spark\", \"age\": 100}".getBytes(StandardCharsets.UTF_8));
+      }
+
+      StructType schema =
+          new StructType().add("name", DataTypes.StringType).add("age", DataTypes.LongType);
+      Dataset<Row> df =
+          spark.readStream().option("multiline", "true").schema(schema).json(inputDir.toString());
+
+      String destTableName = testDataset + "." + "test_stream_json_" + System.nanoTime();
+      String checkPointLocation =
+          Files.createTempDirectory("bq_integration_test_checkpoint").toString();
+
+      StreamingQuery writeStream =
+          df.writeStream()
+              .format("bigquery")
+              .outputMode(OutputMode.Append())
+              .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+              .option("checkpointLocation", checkPointLocation)
+              .option("table", destTableName)
+              .start();
+      writeStream.processAllAvailable();
+      writeStream.stop();
+
+      List<Row> rows = spark.read().format("bigquery").load(destTableName).collectAsList();
+      assertThat(rows).hasSize(1);
+      Row row = rows.get(0);
+      assertThat(row.getString(0)).isEqualTo("spark");
+      assertThat(row.getLong(1)).isEqualTo(100L);
+    } finally {
+      fs.delete(inputDir, true);
     }
-
-    StructType schema =
-        new StructType().add("name", DataTypes.StringType).add("age", DataTypes.LongType);
-    Dataset<Row> df =
-        spark.readStream().option("multiline", "true").schema(schema).json(inputDir.toString());
-
-    String destTableName = testDataset + "." + "test_stream_json_" + System.nanoTime();
-    String checkPointLocation =
-        Files.createTempDirectory("bq_integration_test_checkpoint").toString();
-
-    StreamingQuery writeStream =
-        df.writeStream()
-            .format("bigquery")
-            .outputMode(OutputMode.Append())
-            .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
-            .option("checkpointLocation", checkPointLocation)
-            .option("table", destTableName)
-            .start();
-    writeStream.processAllAvailable();
-    writeStream.stop();
-
-    List<Row> rows = spark.read().format("bigquery").load(destTableName).collectAsList();
-    assertThat(rows).hasSize(1);
-    Row row = rows.get(0);
-    assertThat(row.getString(0)).isEqualTo("spark");
-    assertThat(row.getLong(1)).isEqualTo(100L);
   }
 
   @Test
@@ -679,29 +683,37 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     // Stream the rows from files on Spark's default file system (the local disk in local mode),
     // where the executors can read them when the tests run on a cluster. Unlike MemoryStream, this
     // doesn't call Scala collection APIs, which differ between Scala 2.12 and 2.13.
-    String inputDir = "/tmp/bq_integration_test_streaming_input_" + System.nanoTime();
-    normalizedDF.write().parquet(inputDir);
-    Dataset<Row> streamingDF = spark.readStream().schema(schema).parquet(inputDir);
+    org.apache.hadoop.fs.Path inputDir =
+        new org.apache.hadoop.fs.Path(
+            "/tmp/bq_integration_test_streaming_input_" + System.nanoTime());
+    org.apache.hadoop.fs.FileSystem fs =
+        inputDir.getFileSystem(spark.sparkContext().hadoopConfiguration());
+    try {
+      normalizedDF.write().parquet(inputDir.toString());
+      Dataset<Row> streamingDF = spark.readStream().schema(schema).parquet(inputDir.toString());
 
-    String destTableName = testDataset + "." + "test_streaming_allTypes" + System.nanoTime();
-    String checkPointLocation =
-        Files.createTempDirectory("bq_integration_test_streaming_checkpoint").toString();
+      String destTableName = testDataset + "." + "test_streaming_allTypes" + System.nanoTime();
+      String checkPointLocation =
+          Files.createTempDirectory("bq_integration_test_streaming_checkpoint").toString();
 
-    StreamingQuery writeStream =
-        streamingDF
-            .writeStream()
-            .format("bigquery")
-            .outputMode(OutputMode.Append())
-            .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
-            .option("checkpointLocation", checkPointLocation)
-            .option("table", destTableName)
-            .start();
-    writeStream.processAllAvailable();
-    writeStream.stop();
+      StreamingQuery writeStream =
+          streamingDF
+              .writeStream()
+              .format("bigquery")
+              .outputMode(OutputMode.Append())
+              .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+              .option("checkpointLocation", checkPointLocation)
+              .option("table", destTableName)
+              .start();
+      writeStream.processAllAvailable();
+      writeStream.stop();
 
-    List<Row> readRows = spark.read().format("bigquery").load(destTableName).collectAsList();
-    assertThat(readRows).hasSize(20);
-    assertThat(readRows.get(0)).isEqualTo(rows.get(0));
+      List<Row> readRows = spark.read().format("bigquery").load(destTableName).collectAsList();
+      assertThat(readRows).hasSize(20);
+      assertThat(readRows.get(0)).isEqualTo(rows.get(0));
+    } finally {
+      fs.delete(inputDir, true);
+    }
   }
 
   private void writeDFNullableToBigQueryNullable_Internal(String writeAtLeastOnce)
