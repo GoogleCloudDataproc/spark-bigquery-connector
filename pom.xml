@@ -274,6 +274,7 @@
         <module>spark-bigquery-dsv2/spark-4.1-bigquery-lib</module>
         <module>spark-bigquery-dsv2/spark-4.2-bigquery-lib</module>
         <module>spark-bigquery-dsv2/spark-4.2-bigquery</module>
+        <module>spark-bigquery-dsv2/spark-bigquery-integration-tests</module>
       </modules>
     </profile>
     <profile>

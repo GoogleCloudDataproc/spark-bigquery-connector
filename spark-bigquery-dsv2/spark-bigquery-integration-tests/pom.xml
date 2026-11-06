@@ -126,6 +126,7 @@
               <include>com.google.cloud.spark:spark-3.5-bigquery:test-jar:tests</include>
               <include>com.google.cloud.spark:spark-4.0-bigquery:test-jar:tests</include>
               <include>com.google.cloud.spark:spark-4.1-bigquery:test-jar:tests</include>
+              <include>com.google.cloud.spark:spark-4.2-bigquery:test-jar:tests</include>
               <include>junit:junit</include>
               <include>org.hamcrest:hamcrest-core</include>
               <include>com.google.truth:truth</include>
@@ -199,6 +200,29 @@
         <dependency>
           <groupId>${project.groupId}</groupId>
           <artifactId>spark-4.1-bigquery</artifactId>
+          <version>${project.version}</version>
+          <type>test-jar</type>
+          <exclusions>
+            <exclusion>
+              <groupId>*</groupId>
+              <artifactId>*</artifactId>
+            </exclusion>
+          </exclusions>
+        </dependency>
+      </dependencies>
+    </profile>
+    <profile>
+      <id>dsv2_4.2</id>
+      <dependencies>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-4.2-bigquery</artifactId>
+          <version>${project.version}</version>
+          <scope>provided</scope>
+        </dependency>
+        <dependency>
+          <groupId>${project.groupId}</groupId>
+          <artifactId>spark-4.2-bigquery</artifactId>
           <version>${project.version}</version>
           <type>test-jar</type>
           <exclusions>
