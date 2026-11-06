@@ -184,7 +184,7 @@ public class LakehouseIntegrationTestBase {
   private SparkSession createSparkSessionWithLakehouseCatalog(String testName, String catalogName) {
     SparkSession.Builder builder =
         SparkSession.builder()
-            .master("local")
+            .master(System.getProperty("spark.master", "local"))
             .appName(testName)
             .config("spark.hadoop.google.cloud.appName.v2", testName)
             .config("spark.ui.enabled", "false")

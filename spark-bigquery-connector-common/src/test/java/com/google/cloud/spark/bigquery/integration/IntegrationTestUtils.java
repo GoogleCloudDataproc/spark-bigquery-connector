@@ -159,7 +159,10 @@ public class IntegrationTestUtils {
   }
 
   static SparkSession getOrCreateSparkSession(String applicationName) {
-    return SparkSession.builder().appName(applicationName).master("local").getOrCreate();
+    return SparkSession.builder()
+        .appName(applicationName)
+        .master(System.getProperty("spark.master", "local"))
+        .getOrCreate();
   }
 
   static void createView(String dataset, String view) {

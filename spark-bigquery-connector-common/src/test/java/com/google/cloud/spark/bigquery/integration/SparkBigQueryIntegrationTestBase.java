@@ -46,7 +46,7 @@ public class SparkBigQueryIntegrationTestBase {
       String appName = "integration-test-" + UUID.randomUUID();
       spark =
           SparkSession.builder()
-              .master("local")
+              .master(System.getProperty("spark.master", "local"))
               .appName(appName)
               .config("spark.hadoop.google.cloud.appName.v2", appName)
               .config("spark.ui.enabled", "false")
