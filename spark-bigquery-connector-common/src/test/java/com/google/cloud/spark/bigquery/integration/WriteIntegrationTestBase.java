@@ -54,10 +54,10 @@ import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Streams;
 import com.google.inject.ProvisionException;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
@@ -83,12 +83,10 @@ import org.apache.spark.ml.linalg.SQLDataTypes;
 import org.apache.spark.ml.linalg.Vector;
 import org.apache.spark.package$;
 import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Encoder;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.RowFactory;
 import org.apache.spark.sql.SaveMode;
-import org.apache.spark.sql.execution.streaming.MemoryStream;
 import org.apache.spark.sql.streaming.OutputMode;
 import org.apache.spark.sql.streaming.StreamingQuery;
 import org.apache.spark.sql.types.DataType;
@@ -104,9 +102,7 @@ import org.junit.Assert;
 import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
-import scala.Option;
 import scala.Some;
-import scala.collection.JavaConverters;
 
 abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
@@ -628,35 +624,46 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     String sparkVersion = package$.MODULE$.SPARK_VERSION();
     Assume.assumeThat(sparkVersion, CoreMatchers.startsWith("3."));
 
-    Path inputDir = Files.createTempDirectory("bq_integration_test_input");
-    Path jsonFile = inputDir.resolve("test_data_for_streaming.json");
-    Files.write(jsonFile, "{\"name\": \"spark\", \"age\": 100}".getBytes(StandardCharsets.UTF_8));
+    // Write the input to Spark's default file system (the local disk in local mode), where the
+    // executors can read it when the tests run on a cluster.
+    org.apache.hadoop.fs.Path inputDir =
+        new org.apache.hadoop.fs.Path("/tmp/bq_integration_test_input_" + System.nanoTime());
+    org.apache.hadoop.fs.FileSystem fs =
+        inputDir.getFileSystem(spark.sparkContext().hadoopConfiguration());
+    try {
+      try (OutputStream out =
+          fs.create(new org.apache.hadoop.fs.Path(inputDir, "test_data_for_streaming.json"))) {
+        out.write("{\"name\": \"spark\", \"age\": 100}".getBytes(StandardCharsets.UTF_8));
+      }
 
-    StructType schema =
-        new StructType().add("name", DataTypes.StringType).add("age", DataTypes.LongType);
-    Dataset<Row> df =
-        spark.readStream().option("multiline", "true").schema(schema).json(inputDir.toString());
+      StructType schema =
+          new StructType().add("name", DataTypes.StringType).add("age", DataTypes.LongType);
+      Dataset<Row> df =
+          spark.readStream().option("multiline", "true").schema(schema).json(inputDir.toString());
 
-    String destTableName = testDataset + "." + "test_stream_json_" + System.nanoTime();
-    String checkPointLocation =
-        Files.createTempDirectory("bq_integration_test_checkpoint").toString();
+      String destTableName = testDataset + "." + "test_stream_json_" + System.nanoTime();
+      String checkPointLocation =
+          Files.createTempDirectory("bq_integration_test_checkpoint").toString();
 
-    StreamingQuery writeStream =
-        df.writeStream()
-            .format("bigquery")
-            .outputMode(OutputMode.Append())
-            .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
-            .option("checkpointLocation", checkPointLocation)
-            .option("table", destTableName)
-            .start();
-    writeStream.processAllAvailable();
-    writeStream.stop();
+      StreamingQuery writeStream =
+          df.writeStream()
+              .format("bigquery")
+              .outputMode(OutputMode.Append())
+              .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+              .option("checkpointLocation", checkPointLocation)
+              .option("table", destTableName)
+              .start();
+      writeStream.processAllAvailable();
+      writeStream.stop();
 
-    List<Row> rows = spark.read().format("bigquery").load(destTableName).collectAsList();
-    assertThat(rows).hasSize(1);
-    Row row = rows.get(0);
-    assertThat(row.getString(0)).isEqualTo("spark");
-    assertThat(row.getLong(1)).isEqualTo(100L);
+      List<Row> rows = spark.read().format("bigquery").load(destTableName).collectAsList();
+      assertThat(rows).hasSize(1);
+      Row row = rows.get(0);
+      assertThat(row.getString(0)).isEqualTo("spark");
+      assertThat(row.getLong(1)).isEqualTo(100L);
+    } finally {
+      fs.delete(inputDir, true);
+    }
   }
 
   @Test
@@ -672,37 +679,41 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
 
     Dataset<Row> normalizedDF = spark.createDataFrame(rawRows, schema);
     List<Row> rows = normalizedDF.collectAsList();
-    Encoder<Row> encoder = normalizedDF.encoder();
 
-    MemoryStream<Row> memoryStream =
-        new MemoryStream<>(
-            1, // id
-            spark.sqlContext(), // sqlContext
-            Option.apply(null),
-            encoder // Implicit encoder passed as final arg
-            );
-    memoryStream.addData(JavaConverters.asScalaBuffer(rows).toSeq());
+    // Stream the rows from files on Spark's default file system (the local disk in local mode),
+    // where the executors can read them when the tests run on a cluster. Unlike MemoryStream, this
+    // doesn't call Scala collection APIs, which differ between Scala 2.12 and 2.13.
+    org.apache.hadoop.fs.Path inputDir =
+        new org.apache.hadoop.fs.Path(
+            "/tmp/bq_integration_test_streaming_input_" + System.nanoTime());
+    org.apache.hadoop.fs.FileSystem fs =
+        inputDir.getFileSystem(spark.sparkContext().hadoopConfiguration());
+    try {
+      normalizedDF.write().parquet(inputDir.toString());
+      Dataset<Row> streamingDF = spark.readStream().schema(schema).parquet(inputDir.toString());
 
-    String destTableName = testDataset + "." + "test_streaming_allTypes" + System.nanoTime();
-    String checkPointLocation =
-        Files.createTempDirectory("bq_integration_test_streaming_checkpoint").toString();
+      String destTableName = testDataset + "." + "test_streaming_allTypes" + System.nanoTime();
+      String checkPointLocation =
+          Files.createTempDirectory("bq_integration_test_streaming_checkpoint").toString();
 
-    StreamingQuery writeStream =
-        memoryStream
-            .toDF()
-            .writeStream()
-            .format("bigquery")
-            .outputMode(OutputMode.Append())
-            .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
-            .option("checkpointLocation", checkPointLocation)
-            .option("table", destTableName)
-            .start();
-    writeStream.processAllAvailable();
-    writeStream.stop();
+      StreamingQuery writeStream =
+          streamingDF
+              .writeStream()
+              .format("bigquery")
+              .outputMode(OutputMode.Append())
+              .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+              .option("checkpointLocation", checkPointLocation)
+              .option("table", destTableName)
+              .start();
+      writeStream.processAllAvailable();
+      writeStream.stop();
 
-    List<Row> readRows = spark.read().format("bigquery").load(destTableName).collectAsList();
-    assertThat(readRows).hasSize(20);
-    assertThat(readRows.get(0)).isEqualTo(rows.get(0));
+      List<Row> readRows = spark.read().format("bigquery").load(destTableName).collectAsList();
+      assertThat(readRows).hasSize(20);
+      assertThat(readRows.get(0)).isEqualTo(rows.get(0));
+    } finally {
+      fs.delete(inputDir, true);
+    }
   }
 
   private void writeDFNullableToBigQueryNullable_Internal(String writeAtLeastOnce)
@@ -1643,6 +1654,9 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   public void testWriteToTimestampField() {
     // not supported for indirect writes
     assumeThat(writeMethod, equalTo(WriteMethod.DIRECT));
+    // The test changes the JVM's default time zone, which only applies to the executors when they
+    // run in the same JVM as the driver.
+    Assume.assumeTrue(spark.sparkContext().isLocal());
     IntegrationTestUtils.runQuery(
         String.format(
             "CREATE TABLE `%s.%s` (name STRING, timestamp1 TIMESTAMP)", testDataset, testTable));
