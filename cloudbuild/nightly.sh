@@ -103,6 +103,11 @@ case $STEP in
     gsutil cp "${M2REPO}/com/google/cloud/spark/spark-bigquery-metrics/${BUILD_REVISION}/spark-bigquery-metrics-${BUILD_REVISION}.jar" "gs://${BUCKET}"
     gsutil cp "gs://${BUCKET}/spark-bigquery-metrics-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-bigquery-metrics-nightly-snapshot.jar"
 
+    # The integration tests of all Spark variants, to run on Dataproc runtimes against the
+    # connector from the same build (see spark-bigquery-dsv2/spark-bigquery-integration-tests).
+    gsutil cp "${M2REPO}/com/google/cloud/spark/spark-bigquery-integration-tests/${BUILD_REVISION}/spark-bigquery-integration-tests-${BUILD_REVISION}.jar" "gs://${BUCKET}"
+    gsutil cp "gs://${BUCKET}/spark-bigquery-integration-tests-${BUILD_REVISION}.jar" "gs://${BUCKET}/spark-bigquery-integration-tests-nightly-snapshot.jar"
+
     exit
     ;;
 

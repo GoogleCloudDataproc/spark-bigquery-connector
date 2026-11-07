@@ -214,6 +214,7 @@
         <module>spark-bigquery-dsv2/spark-3.4-bigquery-lib</module>
         <module>spark-bigquery-dsv2/spark-3.5-bigquery-lib</module>
         <module>spark-bigquery-dsv2/spark-3.5-bigquery</module>
+        <module>spark-bigquery-dsv2/spark-bigquery-integration-tests</module>
       </modules>
     </profile>
     <profile>
@@ -232,6 +233,7 @@
         <module>spark-bigquery-dsv2/spark-3.5-bigquery-lib</module>
         <module>spark-bigquery-dsv2/spark-4.0-bigquery-lib</module>
         <module>spark-bigquery-dsv2/spark-4.0-bigquery</module>
+        <module>spark-bigquery-dsv2/spark-bigquery-integration-tests</module>
       </modules>
     </profile>
     <profile>
@@ -251,6 +253,7 @@
         <module>spark-bigquery-dsv2/spark-4.0-bigquery-lib</module>
         <module>spark-bigquery-dsv2/spark-4.1-bigquery-lib</module>
         <module>spark-bigquery-dsv2/spark-4.1-bigquery</module>
+        <module>spark-bigquery-dsv2/spark-bigquery-integration-tests</module>
       </modules>
     </profile>
     <profile>
@@ -271,6 +274,7 @@
         <module>spark-bigquery-dsv2/spark-4.1-bigquery-lib</module>
         <module>spark-bigquery-dsv2/spark-4.2-bigquery-lib</module>
         <module>spark-bigquery-dsv2/spark-4.2-bigquery</module>
+        <module>spark-bigquery-dsv2/spark-bigquery-integration-tests</module>
       </modules>
     </profile>
     <profile>
