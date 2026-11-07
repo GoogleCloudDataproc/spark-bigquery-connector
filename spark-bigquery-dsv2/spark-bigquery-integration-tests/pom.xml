@@ -102,12 +102,13 @@
   </dependencies>
   <build>
     <plugins>
-      <!-- The connector's shading check doesn't apply: these jars intentionally contain JUnit. -->
+      <!-- The connector's shading check doesn't apply, since the jar intentionally contains JUnit
+           and the tests. Check instead that the jar contains nothing else unrelocated. -->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <configuration>
-          <skip>true</skip>
+          <executable>${reactor.project.basedir}/scripts/verify-integration-tests-shading.sh</executable>
         </configuration>
       </plugin>
       <!-- Package only the tests and the test-only libraries, so that the tests bind to the
@@ -137,6 +138,56 @@
               <include>com.google.http-client:google-http-client-jackson2</include>
             </includes>
           </artifactSet>
+          <!-- Truth's ASM, which the connector doesn't relocate since it doesn't use it. -->
+          <relocations combine.children="append">
+            <relocation>
+              <pattern>org.objectweb.asm</pattern>
+              <shadedPattern>com.google.cloud.spark.bigquery.repackaged.org.objectweb.asm</shadedPattern>
+            </relocation>
+          </relocations>
+          <!-- From the connector's test jars, take only the integration tests and their resources,
+               and the one acceptance helper they use. The rest (unit tests, and resources such as
+               spark-bigquery-connector.properties) would compete with the connector's own classes
+               and resources. -->
+          <filters combine.children="append">
+            <filter>
+              <artifact>com.google.cloud.spark:spark-bigquery-connector-common:test-jar:tests</artifact>
+              <includes>
+                <include>**/integration/**</include>
+                <include>com/google/cloud/spark/bigquery/acceptance/AcceptanceTestUtils*.class</include>
+              </includes>
+            </filter>
+            <filter>
+              <artifact>com.google.cloud.spark:bigquery-connector-common:test-jar:tests</artifact>
+              <includes>
+                <include>**/integration/**</include>
+              </includes>
+            </filter>
+            <filter>
+              <artifact>com.google.cloud.spark:spark-3.5-bigquery:test-jar:tests</artifact>
+              <includes>
+                <include>**/integration/**</include>
+              </includes>
+            </filter>
+            <filter>
+              <artifact>com.google.cloud.spark:spark-4.0-bigquery:test-jar:tests</artifact>
+              <includes>
+                <include>**/integration/**</include>
+              </includes>
+            </filter>
+            <filter>
+              <artifact>com.google.cloud.spark:spark-4.1-bigquery:test-jar:tests</artifact>
+              <includes>
+                <include>**/integration/**</include>
+              </includes>
+            </filter>
+            <filter>
+              <artifact>com.google.cloud.spark:spark-4.2-bigquery:test-jar:tests</artifact>
+              <includes>
+                <include>**/integration/**</include>
+              </includes>
+            </filter>
+          </filters>
         </configuration>
       </plugin>
     </plugins>
