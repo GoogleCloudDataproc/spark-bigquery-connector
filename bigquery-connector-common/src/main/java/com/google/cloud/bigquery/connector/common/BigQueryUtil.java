@@ -60,8 +60,10 @@ import io.grpc.StatusRuntimeException;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.ObjectStreamClass;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -375,7 +377,7 @@ public class BigQueryUtil {
   static Credentials getCredentialsFromByteArray(byte[] byteArray) {
     try {
       ObjectInputStream objectInputStream =
-          new ObjectInputStream(new ByteArrayInputStream(byteArray));
+          new ContextClassLoaderObjectInputStream(new ByteArrayInputStream(byteArray));
       return (Credentials) objectInputStream.readObject();
     } catch (IOException | ClassNotFoundException e) {
       throw new RuntimeException(e);
@@ -776,7 +778,7 @@ public class BigQueryUtil {
   public static <T> T createVerifiedInstance(
       String fullyQualifiedClassName, Class<T> requiredClass, Object... constructorArgs) {
     try {
-      Class<?> clazz = Class.forName(fullyQualifiedClassName);
+      Class<?> clazz = loadClass(fullyQualifiedClassName);
       Object result =
           clazz
               .getDeclaredConstructor(
@@ -805,6 +807,52 @@ public class BigQueryUtil {
   }
 
   /**
+   * Loads a class by name, trying the thread context class loader first and then the connector's
+   * own class loader. User-supplied classes may come from the jars added to the application (for
+   * example with spark-submit's --jars), which only the context class loader can see when the
+   * connector itself is on the cluster's classpath.
+   */
+  @VisibleForTesting
+  static Class<?> loadClass(String fullyQualifiedClassName) throws ClassNotFoundException {
+    ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+    if (contextClassLoader != null) {
+      try {
+        return Class.forName(fullyQualifiedClassName, true, contextClassLoader);
+      } catch (ClassNotFoundException e) {
+        // Fall back to the connector's class loader below.
+      }
+    }
+    return Class.forName(fullyQualifiedClassName);
+  }
+
+  /**
+   * An ObjectInputStream that resolves classes like {@link #loadClass(String)}. The default
+   * ObjectInputStream resolves classes with the class loader of the closest caller on the stack,
+   * which is the connector's, so it can't deserialize instances of user-supplied classes such as a
+   * custom AccessTokenProvider.
+   */
+  private static class ContextClassLoaderObjectInputStream extends ObjectInputStream {
+
+    ContextClassLoaderObjectInputStream(InputStream in) throws IOException {
+      super(in);
+    }
+
+    @Override
+    protected Class<?> resolveClass(ObjectStreamClass desc)
+        throws IOException, ClassNotFoundException {
+      ClassLoader contextClassLoader = Thread.currentThread().getContextClassLoader();
+      if (contextClassLoader != null) {
+        try {
+          return Class.forName(desc.getName(), false, contextClassLoader);
+        } catch (ClassNotFoundException e) {
+          // Fall back to the default resolution, which also handles primitive types.
+        }
+      }
+      return super.resolveClass(desc);
+    }
+  }
+
+  /**
    * Verify the given object is Serializable by returning the deserialized version of the serialized
    * instance
    */
@@ -815,7 +863,8 @@ public class BigQueryUtil {
       out.writeObject(obj);
       out.flush();
       out.close();
-      ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(buffer.toByteArray()));
+      ObjectInputStream in =
+          new ContextClassLoaderObjectInputStream(new ByteArrayInputStream(buffer.toByteArray()));
       T result = (T) in.readObject();
       in.close();
       return result;
