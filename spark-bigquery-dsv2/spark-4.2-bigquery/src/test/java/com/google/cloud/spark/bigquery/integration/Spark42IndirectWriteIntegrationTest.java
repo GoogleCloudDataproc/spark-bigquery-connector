@@ -37,6 +37,12 @@ public class Spark42IndirectWriteIntegrationTest extends WriteIntegrationTestBas
     // committer.setupJob(job) in FileFormatWriter before setting spark.sql.sources.writeJobUUID,
     // which causes Hadoop's default ManifestCommitter for gs:// to fail with a NullPointerException
     // on job.getJobID() when writing Avro intermediate files.
+    //
+    // Only in local mode: on a cluster, the cluster's own GCS connector configuration applies. The
+    // runtime test jar also relocates the class names below, so they wouldn't resolve there.
+    if (!spark.sparkContext().isLocal()) {
+      return;
+    }
     Configuration hadoopConf = spark.sparkContext().hadoopConfiguration();
     hadoopConf.set("fs.gs.impl", "com.google.cloud.hadoop.fs.gcs.GoogleHadoopFileSystem");
     hadoopConf.set(
