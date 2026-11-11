@@ -51,6 +51,20 @@
       <artifactId>spark-4.2-bigquery-lib</artifactId>
       <version>${project.version}</version>
     </dependency>
+    <!--
+      The Spark 4 spark-sql artifact depends on commons-io and commons-lang3 directly, so
+      Maven resolves them with its provided scope and the shade plugin leaves them out,
+      even though the shaded commons-compress and OpenLineage classes reference them.
+      Declare them here so that they are shaded and relocated, as in the Spark 3.5 jar.
+    -->
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+    </dependency>
     <dependency>
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-avro_2.13</artifactId>
