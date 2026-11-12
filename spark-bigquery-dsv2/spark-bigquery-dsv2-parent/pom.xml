@@ -36,6 +36,20 @@
       <artifactId>commons-lang</artifactId>
       <scope>provided</scope>
     </dependency>
+    <!--
+      The shaded libraries (such as commons-compress and OpenLineage) reference commons-io and
+      commons-lang3. Spark also depends on them, so without these declarations they would
+      inherit the provided scope of the Spark dependencies in some Spark versions and be left
+      out of the shaded jars.
+    -->
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+    </dependency>
     <dependency>
       <groupId>io.openlineage</groupId>
       <artifactId>openlineage-spark_${scala.binary.version}</artifactId>
