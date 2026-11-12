@@ -375,9 +375,8 @@ public class BigQueryUtil {
   }
 
   static Credentials getCredentialsFromByteArray(byte[] byteArray) {
-    try {
-      ObjectInputStream objectInputStream =
-          new ContextClassLoaderObjectInputStream(new ByteArrayInputStream(byteArray));
+    try (ObjectInputStream objectInputStream =
+        new ContextClassLoaderObjectInputStream(new ByteArrayInputStream(byteArray))) {
       return (Credentials) objectInputStream.readObject();
     } catch (IOException | ClassNotFoundException e) {
       throw new RuntimeException(e);
@@ -863,11 +862,10 @@ public class BigQueryUtil {
       out.writeObject(obj);
       out.flush();
       out.close();
-      ObjectInputStream in =
-          new ContextClassLoaderObjectInputStream(new ByteArrayInputStream(buffer.toByteArray()));
-      T result = (T) in.readObject();
-      in.close();
-      return result;
+      try (ObjectInputStream in =
+          new ContextClassLoaderObjectInputStream(new ByteArrayInputStream(buffer.toByteArray()))) {
+        return (T) in.readObject();
+      }
     } catch (IOException | ClassNotFoundException e) {
       throw new IllegalArgumentException(
           "Serialization test of " + obj.getClass().getCanonicalName() + " failed", e);
