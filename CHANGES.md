@@ -9,6 +9,9 @@
   `SupportsQueryPushdown`, `BigQueryPushdownException`, `BigQueryPushdownUnsupportedException`)
   and the `spark-bigquery-pushdown` modules, which have not been built since query pushdown
   support was removed in 0.43.0 (PR #1367).
+* PR #1549: A custom `AccessTokenProvider` set with `gcpAccessTokenProvider` can now come from
+  the application's jars (for example added with `--jars`) when the connector is on the
+  cluster's classpath.
 
 ## 0.46.1 - 2026-11-04
 
