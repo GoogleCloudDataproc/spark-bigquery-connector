@@ -125,10 +125,8 @@ public class RuntimeTestRunner {
     // No session left (e.g. the tests stopped it): apply the job's spark.hadoop.* properties the
     // way Spark does, rather than starting a new SparkContext.
     Configuration conf = new Configuration();
-    for (Tuple2<String, String> entry : new SparkConf().getAll()) {
-      if (entry._1().startsWith(SPARK_HADOOP_PREFIX)) {
-        conf.set(entry._1().substring(SPARK_HADOOP_PREFIX.length()), entry._2());
-      }
+    for (Tuple2<String, String> entry : new SparkConf().getAllWithPrefix(SPARK_HADOOP_PREFIX)) {
+      conf.set(entry._1(), entry._2());
     }
     return conf;
   }
