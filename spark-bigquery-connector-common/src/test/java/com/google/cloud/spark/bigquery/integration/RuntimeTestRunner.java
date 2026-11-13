@@ -29,12 +29,16 @@ import java.util.Set;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.spark.SparkConf;
+import org.apache.spark.sql.SparkSession;
 import org.junit.runner.Description;
 import org.junit.runner.JUnitCore;
 import org.junit.runner.Request;
 import org.junit.runner.Result;
 import org.junit.runner.notification.Failure;
 import org.junit.runner.notification.RunListener;
+import scala.Option;
+import scala.Tuple2;
 
 /**
  * Runs integration tests inside a Spark job on a Dataproc runtime and reports one result per test.
@@ -64,6 +68,7 @@ import org.junit.runner.notification.RunListener;
 public class RuntimeTestRunner {
 
   private static final String REPORT_FLAG = "--report=";
+  private static final String SPARK_HADOOP_PREFIX = "spark.hadoop.";
 
   public static void main(String[] args) throws Exception {
     String reportPath = null;
@@ -101,6 +106,29 @@ public class RuntimeTestRunner {
     System.out.flush();
     // Return instead of calling System.exit(): in YARN cluster mode, exiting before the
     // ApplicationMaster records the final status marks the application as failed and retries it.
+  }
+
+  /**
+   * Returns the Hadoop configuration the Spark job uses, so that the report is written with the
+   * same file system implementation as the job (e.g. the one set by {@code
+   * spark.hadoop.fs.gs.impl}), which can differ from the one a plain {@code new Configuration()}
+   * resolves on some runtimes.
+   */
+  private static Configuration hadoopConfiguration() {
+    Option<SparkSession> session = SparkSession.getActiveSession();
+    if (session.isEmpty()) {
+      session = SparkSession.getDefaultSession();
+    }
+    if (session.isDefined()) {
+      return session.get().sparkContext().hadoopConfiguration();
+    }
+    // No session left (e.g. the tests stopped it): apply the job's spark.hadoop.* properties the
+    // way Spark does, rather than starting a new SparkContext.
+    Configuration conf = new Configuration();
+    for (Tuple2<String, String> entry : new SparkConf().getAllWithPrefix(SPARK_HADOOP_PREFIX)) {
+      conf.set(entry._1(), entry._2());
+    }
+    return conf;
   }
 
   private static String id(Description description) {
@@ -264,7 +292,7 @@ public class RuntimeTestRunner {
       }
       xml.append("</testsuites>\n");
       Path reportPath = new Path(path);
-      FileSystem fs = reportPath.getFileSystem(new Configuration());
+      FileSystem fs = reportPath.getFileSystem(hadoopConfiguration());
       try (OutputStream out = fs.create(reportPath, true)) {
         out.write(xml.toString().getBytes(StandardCharsets.UTF_8));
       }
