@@ -71,7 +71,7 @@ fi
 
 MISSING_CLASSES=$(printf '%s\n' "${DEPENDENCIES}" | \
   awk -v prefix="${RELOCATION_PREFIX}" '
-    $2 == "->" && $(NF-1) == "not" && $NF == "found" && index($3, prefix) == 1 {
+    NF >= 4 && $2 == "->" && $(NF-1) == "not" && $NF == "found" && index($3, prefix) == 1 {
       missing = substr($3, length(prefix) + 1)
       if (!(missing in referrers)) {
         referrers[missing] = substr($1, index($1, prefix) == 1 ? length(prefix) + 1 : 1)
@@ -82,7 +82,7 @@ MISSING_CLASSES=$(printf '%s\n' "${DEPENDENCIES}" | \
         print missing " (referenced by " referrers[missing] ")"
       }
     }' | \
-  grep -v -E "${ALLOWED_PATTERN}" | \
+  grep -v -E "${ALLOWED_PATTERN:-^$}" | \
   LC_ALL=C sort)
 
 if [ -n "${MISSING_CLASSES}" ]; then
