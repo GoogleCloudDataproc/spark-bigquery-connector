@@ -12,6 +12,11 @@
 * PR #1549: A custom `AccessTokenProvider` set with `gcpAccessTokenProvider` can now come from
   the application's jars (for example added with `--jars`) when the connector is on the
   cluster's classpath.
+* PR #1552: On Spark 3.4 and above, DataSource V2 scans report the pre-pruning row count from
+  BigQuery table metadata (plus any streaming buffer estimate) as the `numRowsBeforePruning` and
+  `rawInputRows` driver metrics for tables, table snapshots, and materialized `query` reads. Both
+  metrics are omitted for views, materialized views, external tables, `snapshotTimeMillis` reads,
+  and empty tables.
 
 ## 0.46.1 - 2026-11-04
 

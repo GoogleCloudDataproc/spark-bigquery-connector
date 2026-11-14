@@ -1417,6 +1417,10 @@ word-break:break-word
    <td><code>spark time</code></td>
    <td>the amount of time spent in spark to process the queries (i.e., apart from scanning and parsing), across all the executors, in milliseconds.</td>
   </tr>
+  <tr valign="top">
+   <td><code>numRowsBeforePruning</code> / <code>rawInputRows</code></td>
+   <td>pre-pruning row count from BigQuery table metadata (plus any streaming buffer estimate), reported once per scan on the driver under both names (DataSource V2 on Spark 3.4+ for tables, snapshots, and materialized <code>query</code> reads; omitted for views, materialized views, external tables, <code>snapshotTimeMillis</code> reads, and empty tables).</td>
+  </tr>
 </table>
 
 

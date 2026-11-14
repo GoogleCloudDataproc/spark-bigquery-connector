@@ -17,6 +17,7 @@ package com.google.cloud.spark.bigquery.v2.context;
 
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
@@ -44,6 +45,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Streams;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -549,6 +551,44 @@ public class BigQueryDataSourceReaderContext {
 
   public TableInfo getTableInfo() {
     return this.table;
+  }
+
+  /**
+   * Returns the pre-pruning table row count from BigQuery table metadata ({@link
+   * TableInfo#getNumRows()} plus any {@link StandardTableDefinition.StreamingBuffer} row estimate),
+   * including materialized {@code query} option temp tables. Returns empty for views, materialized
+   * views, external tables, {@code snapshotTimeMillis} time-travel reads, and zero or unknown
+   * counts.
+   */
+  public OptionalLong getNumRowsBeforePruning() {
+    if (readSessionCreatorConfig.getSnapshotTimeMillis().isPresent()) {
+      return OptionalLong.empty();
+    }
+    TableDefinition definition = table.getDefinition();
+    if (definition == null) {
+      return OptionalLong.empty();
+    }
+    TableDefinition.Type type = definition.getType();
+    if (type != TableDefinition.Type.TABLE && type != TableDefinition.Type.SNAPSHOT) {
+      return OptionalLong.empty();
+    }
+    BigInteger numRows = table.getNumRows();
+    BigInteger total = numRows != null ? numRows : BigInteger.ZERO;
+    if (definition instanceof StandardTableDefinition) {
+      StandardTableDefinition.StreamingBuffer buffer =
+          ((StandardTableDefinition) definition).getStreamingBuffer();
+      if (buffer != null && buffer.getEstimatedRows() != null && buffer.getEstimatedRows() > 0) {
+        total = total.add(BigInteger.valueOf(buffer.getEstimatedRows()));
+      } else if (numRows == null) {
+        return OptionalLong.empty();
+      }
+    } else if (numRows == null) {
+      return OptionalLong.empty();
+    }
+    if (total.signum() <= 0 || total.compareTo(BigInteger.valueOf(Long.MAX_VALUE)) > 0) {
+      return OptionalLong.empty();
+    }
+    return OptionalLong.of(total.longValue());
   }
 
   public void build() {

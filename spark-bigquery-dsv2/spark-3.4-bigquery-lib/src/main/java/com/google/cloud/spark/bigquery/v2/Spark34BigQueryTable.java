@@ -15,12 +15,21 @@
  */
 package com.google.cloud.spark.bigquery.v2;
 
+import com.google.cloud.spark.bigquery.v2.context.BigQueryDataSourceReaderContext;
 import com.google.inject.Injector;
 import java.util.function.Supplier;
+import org.apache.spark.sql.connector.read.ScanBuilder;
 import org.apache.spark.sql.types.StructType;
+import org.apache.spark.sql.util.CaseInsensitiveStringMap;
 
 public class Spark34BigQueryTable extends Spark33BigQueryTable {
   protected Spark34BigQueryTable(Injector injector, Supplier<StructType> schemaSupplier) {
     super(injector, schemaSupplier);
+  }
+
+  @Override
+  public ScanBuilder newScanBuilder(CaseInsensitiveStringMap options) {
+    BigQueryDataSourceReaderContext ctx = createBigQueryDataSourceReaderContext(options);
+    return new Spark34BigQueryScanBuilder(ctx);
   }
 }
