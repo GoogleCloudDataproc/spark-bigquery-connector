@@ -305,8 +305,11 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
      * Retrying stream: null - Stream Finished: null
      */
     StreamController controller;
-    // Number of responses enqueued in the main iterator.
+    // Number of responses enqueued in the main iterator, plus the responses requested from the
+    // current controller that haven't been received yet.
     AtomicInteger enqueuedCount = new AtomicInteger(0);
+    // Number of responses requested from the current controller that haven't been received yet.
+    private final AtomicInteger outstandingRequests = new AtomicInteger(0);
     private final Object controllerLock = new Object();
 
     // The ReadRows request.  Uses a builder so offset can easily be set for retry.
@@ -329,6 +332,7 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
 
     @Override
     public void onResponse(ReadRowsResponse value) {
+      outstandingRequests.decrementAndGet();
       readRowsCount += value.getRowCount();
       // Note we don't take a global lock here, so ordering of observers might be different then
       // responses.  This should be OK because it should balance out in the end (there should
@@ -348,6 +352,10 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
         synchronized (controllerLock) {
           this.controller = controller;
           controller.disableAutoInboundFlowControl();
+          // When this is a retried stream, the responses requested from the previous stream that
+          // were never received won't arrive, so stop counting them. Otherwise the count could
+          // stay above the refill threshold and nothing would be requested from the new stream.
+          enqueuedCount.addAndGet(-outstandingRequests.getAndSet(0));
           // Regiest one more because request always decrements.
           enqueuedCount.incrementAndGet();
           request();
@@ -412,7 +420,6 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
       }
       int addBack = bufferEntriesPerStream - count;
       Preconditions.checkState(addBack > 0);
-      enqueuedCount.addAndGet(addBack);
 
       while (!canExit) {
 
@@ -430,6 +437,10 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
           // 4.  Stream is inactive (still initializing).
           try {
             controller.request(addBack);
+            // Counted only once requested, so that no demand is counted while there is no
+            // controller, e.g. between a retryable error and the start of the retried stream.
+            enqueuedCount.addAndGet(addBack);
+            outstandingRequests.addAndGet(addBack);
             canExit = true;
           } catch (RuntimeException e) {
             // controller might not be started and javadoc isn't clear if it is on its path
