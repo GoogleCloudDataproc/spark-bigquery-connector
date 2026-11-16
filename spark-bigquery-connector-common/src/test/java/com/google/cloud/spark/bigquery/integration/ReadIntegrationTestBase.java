@@ -1762,8 +1762,13 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
     } finally {
       // BigLake managed tables are dropped here, before cleanGcsObjects() removes their storage.
       for (String table : bigLakeManagedTables) {
-        IntegrationTestUtils.runQuery(
-            String.format("DROP TABLE IF EXISTS `%s.%s`", testDataset, table));
+        try {
+          IntegrationTestUtils.runQuery(
+              String.format("DROP TABLE IF EXISTS `%s.%s`", testDataset, table));
+        } catch (RuntimeException e) {
+          IntegrationTestUtils.logger.warn(
+              "Failed to drop BigLake managed table {}.{}", testDataset, table, e);
+        }
       }
     }
   }
@@ -1830,6 +1835,9 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
    * {@code p.l.c} form expected by the {@code WITH CONNECTION} DDL clause.
    */
   private static String toDdlConnectionId(String connectionId) {
+    if (connectionId == null) {
+      return null;
+    }
     Matcher matcher = CONNECTION_RESOURCE_NAME.matcher(connectionId);
     if (matcher.matches()) {
       return String.format("%s.%s.%s", matcher.group(1), matcher.group(2), matcher.group(3));
