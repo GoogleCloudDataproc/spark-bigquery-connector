@@ -44,6 +44,7 @@ import org.apache.spark.SparkEnv;
 import org.apache.spark.TaskContext;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.types.StructType;
+import org.apache.spark.util.TaskCompletionListener;
 
 class BigQueryRDDContext implements Serializable {
 
@@ -96,41 +97,53 @@ class BigQueryRDDContext implements Serializable {
             request,
             options.toReadSessionCreatorConfig().toReadRowsHelperOptions(),
             Optional.of(tracer));
-    Iterator<ReadRowsResponse> readRowsResponseIterator = readRowsHelper.readRows();
-
-    StructType schema =
-        options
-            .getSchema()
-            .orElse(
-                SchemaConverters.from(SchemaConvertersConfiguration.from(options))
-                    .toSpark(bqSchema));
-
-    ReadRowsResponseToInternalRowIteratorConverter converter;
-    if (options.getReadDataFormat().equals(DataFormat.AVRO)) {
-      converter =
-          ReadRowsResponseToInternalRowIteratorConverter.avro(
-              bqSchema,
-              Arrays.asList(columnsInOrder),
-              readSession.getAvroSchema().getSchema(),
-              Optional.of(schema),
-              Optional.of(tracer),
-              SchemaConvertersConfiguration.from(options),
-              options.getResponseCompressionCodec());
-    } else {
-      converter =
-          ReadRowsResponseToInternalRowIteratorConverter.arrow(
-              Arrays.asList(columnsInOrder),
-              readSession.getArrowSchema().getSerializedSchema(),
-              Optional.of(schema),
-              Optional.of(tracer),
-              options.getResponseCompressionCodec(),
-              options.getEnableArrowTimestampRebase());
+    if (context != null) {
+      // InternalRowIterator closes readRowsHelper only at end-of-stream, so also close it on task
+      // completion to release the ReadRows stream and its channel on early LIMIT or task failure.
+      context.addTaskCompletionListener(
+          (TaskCompletionListener) taskContext -> readRowsHelper.close());
     }
+    try {
+      Iterator<ReadRowsResponse> readRowsResponseIterator = readRowsHelper.readRows();
 
-    return new InterruptibleIterator<InternalRow>(
-        context,
-        new ScalaIterator<InternalRow>(
-            new InternalRowIterator(readRowsResponseIterator, converter, readRowsHelper, tracer)));
+      StructType schema =
+          options
+              .getSchema()
+              .orElse(
+                  SchemaConverters.from(SchemaConvertersConfiguration.from(options))
+                      .toSpark(bqSchema));
+
+      ReadRowsResponseToInternalRowIteratorConverter converter;
+      if (options.getReadDataFormat().equals(DataFormat.AVRO)) {
+        converter =
+            ReadRowsResponseToInternalRowIteratorConverter.avro(
+                bqSchema,
+                Arrays.asList(columnsInOrder),
+                readSession.getAvroSchema().getSchema(),
+                Optional.of(schema),
+                Optional.of(tracer),
+                SchemaConvertersConfiguration.from(options),
+                options.getResponseCompressionCodec());
+      } else {
+        converter =
+            ReadRowsResponseToInternalRowIteratorConverter.arrow(
+                Arrays.asList(columnsInOrder),
+                readSession.getArrowSchema().getSerializedSchema(),
+                Optional.of(schema),
+                Optional.of(tracer),
+                options.getResponseCompressionCodec(),
+                options.getEnableArrowTimestampRebase());
+      }
+
+      return new InterruptibleIterator<InternalRow>(
+          context,
+          new ScalaIterator<InternalRow>(
+              new InternalRowIterator(
+                  readRowsResponseIterator, converter, readRowsHelper, tracer)));
+    } catch (Throwable t) {
+      readRowsHelper.close();
+      throw t;
+    }
   }
 
   public Partition[] getPartitions() {

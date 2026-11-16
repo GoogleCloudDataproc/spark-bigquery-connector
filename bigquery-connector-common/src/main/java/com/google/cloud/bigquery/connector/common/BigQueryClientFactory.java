@@ -59,6 +59,10 @@ public class BigQueryClientFactory implements Serializable {
   private static final Logger log = LoggerFactory.getLogger(BigQueryClientFactory.class);
   private static final Map<BigQueryClientFactory, BigQueryReadClient> readClientMap =
       new HashMap<>();
+  // Guarded by readClientMap. Created together with the read client, so that the number of
+  // channels matches the client's channel pool.
+  private static final Map<BigQueryClientFactory, ReadRowsChannelSelector>
+      readRowsChannelSelectorMap = new HashMap<>();
   private static final Map<BigQueryClientFactory, BigQueryWriteClient> writeClientMap =
       new HashMap<>();
 
@@ -90,18 +94,31 @@ public class BigQueryClientFactory implements Serializable {
   public BigQueryReadClient getBigQueryReadClient() {
     synchronized (readClientMap) {
       if (!readClientMap.containsKey(this)) {
+        int channelPoolSize = this.bqConfig.getChannelPoolSize();
         BigQueryReadClient bigQueryReadClient =
             createBigQueryReadClient(
                 this.bqConfig.getBigQueryStorageGrpcEndpoint(),
-                this.bqConfig.getChannelPoolSize(),
+                channelPoolSize,
                 this.bqConfig.getFlowControlWindowBytes());
+        ReadRowsChannelSelector selector = new ReadRowsChannelSelector(channelPoolSize);
         Runtime.getRuntime()
             .addShutdownHook(new Thread(() -> shutdownBigQueryReadClient(bigQueryReadClient)));
         readClientMap.put(this, bigQueryReadClient);
+        readRowsChannelSelectorMap.put(this, selector);
       }
+      return readClientMap.get(this);
     }
+  }
 
-    return readClientMap.get(this);
+  /**
+   * Returns the selector that assigns ReadRows streams to the channels of the client returned by
+   * {@link #getBigQueryReadClient()}, creating the client if needed.
+   */
+  public ReadRowsChannelSelector getReadRowsChannelSelector() {
+    synchronized (readClientMap) {
+      getBigQueryReadClient();
+      return readRowsChannelSelectorMap.get(this);
+    }
   }
 
   public BigQueryWriteClient getBigQueryWriteClient() {

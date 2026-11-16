@@ -105,10 +105,16 @@ public class ReadRowsHelper implements AutoCloseable {
     }
     bigQueryStorageReadRowsTracer.ifPresent(tracer -> tracer.startStream());
     BigQueryReadClient client = bigQueryReadClientFactory.getBigQueryReadClient();
+    Optional<ReadRowsChannelSelector> channelSelector =
+        Optional.ofNullable(bigQueryReadClientFactory.getReadRowsChannelSelector());
 
     incomingStream =
         new StreamCombiningIterator(
-            client, requests, options.prebufferResponses, options.getMaxReadRowsRetries());
+            client,
+            requests,
+            options.prebufferResponses,
+            options.getMaxReadRowsRetries(),
+            channelSelector);
     return incomingStream;
   }
 

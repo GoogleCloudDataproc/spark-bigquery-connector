@@ -16,7 +16,6 @@
 package com.google.cloud.bigquery.connector.common;
 
 import com.google.api.gax.grpc.GrpcCallContext;
-import com.google.api.gax.rpc.ApiCallContext;
 import com.google.api.gax.rpc.ResponseObserver;
 import com.google.api.gax.rpc.StreamController;
 import com.google.cloud.bigquery.storage.v1.BigQueryReadClient;
@@ -53,6 +52,7 @@ import org.slf4j.LoggerFactory;
 public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
   private static final Logger log = LoggerFactory.getLogger(StreamCombiningIterator.class);
   private static final Object EOS = new Object();
+  private static final int NO_CHANNEL = -1;
   // Contains either a ReadRowsResponse, or a terminal object of throwable OR EOS
   // This class is engineered keep responses below capacity unless a terminal state has
   // been reached.
@@ -63,6 +63,7 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
   private final int numRetries;
   private final Object lock = new Object();
   private final BigQueryReadClient client;
+  private final Optional<ReadRowsChannelSelector> channelSelector;
   Object last;
   volatile boolean cancelled = false;
   private final Collection<Observer> observers;
@@ -77,7 +78,28 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
       Collection<ReadRowsRequest.Builder> requests,
       int bufferEntriesPerStream,
       int numRetries) {
+    this(client, requests, bufferEntriesPerStream, numRetries, Optional.empty());
+  }
+
+  /**
+   * Creates an iterator combining the given ReadRows requests.
+   *
+   * @param client the read client used to execute each ReadRows call
+   * @param requests the ReadRows requests to combine
+   * @param bufferEntriesPerStream the maximum number of responses buffered per stream
+   * @param numRetries the maximum number of connector-level retries per stream
+   * @param channelSelector when present, each ReadRows call is sent on the channel it selects (see
+   *     {@link ReadRowsChannelSelector}); otherwise, the client's channel pool assigns calls to
+   *     channels round-robin
+   */
+  StreamCombiningIterator(
+      BigQueryReadClient client,
+      Collection<ReadRowsRequest.Builder> requests,
+      int bufferEntriesPerStream,
+      int numRetries,
+      Optional<ReadRowsChannelSelector> channelSelector) {
     this.client = client;
+    this.channelSelector = channelSelector;
     observersLeft = new AtomicInteger(requests.size());
     this.bufferEntriesPerStream = bufferEntriesPerStream;
     Preconditions.checkArgument(
@@ -95,6 +117,14 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
     observersQueue = new ArrayBlockingQueue<>(requests.size() * this.bufferEntriesPerStream);
     this.numRetries = numRetries;
     observers = requests.stream().map(Observer::new).collect(Collectors.toList());
+    try {
+      for (Observer observer : observers) {
+        newConnection(observer, observer.builder);
+      }
+    } catch (Throwable t) {
+      cancel();
+      throw t;
+    }
   }
 
   synchronized void stopWithError(Throwable error) {
@@ -227,8 +257,10 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
 
   private void newConnection(Observer observer, ReadRowsRequest.Builder request) {
     synchronized (lock) {
+      // A retried stream is assigned a channel again, as it may no longer be the least loaded one.
+      observer.releaseChannel();
       if (!cancelled) {
-        ApiCallContext callContext = GrpcCallContext.createDefault();
+        GrpcCallContext callContext = GrpcCallContext.createDefault();
         try {
           callContext =
               READ_SESSION_TO_IDENTITY_TOKEN_CACHE
@@ -244,7 +276,19 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
         } catch (ExecutionException e) {
           log.error("Unable to obtain identity token", e);
         }
-        client.readRowsCallable().call(request.build(), observer, callContext);
+        if (channelSelector.isPresent()) {
+          int channel = channelSelector.get().acquire();
+          observer.channel.set(channel);
+          callContext = callContext.withChannelAffinity(channel);
+          log.debug(
+              "ReadRows call for stream {} sent on channel {}", request.getReadStream(), channel);
+        }
+        try {
+          client.readRowsCallable().call(request.build(), observer, callContext);
+        } catch (Throwable t) {
+          observer.releaseChannel();
+          throw t;
+        }
       }
     }
   }
@@ -267,9 +311,19 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
     // The ReadRows request.  Uses a builder so offset can easily be set for retry.
     ReadRowsRequest.Builder builder;
 
+    // The channel acquired from channelSelector for the current call, or NO_CHANNEL.
+    final AtomicInteger channel = new AtomicInteger(NO_CHANNEL);
+
     Observer(ReadRowsRequest.Builder builder) {
       this.builder = builder;
-      newConnection(this, builder);
+    }
+
+    /** Releases the channel acquired for the current call, if any. Safe to call repeatedly. */
+    void releaseChannel() {
+      int acquired = channel.getAndSet(NO_CHANNEL);
+      if (acquired != NO_CHANNEL) {
+        channelSelector.ifPresent(selector -> selector.release(acquired));
+      }
     }
 
     @Override
@@ -311,6 +365,7 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
         newConnection(this, builder);
         retries++;
       } else {
+        releaseChannel();
         if (BigQueryUtil.isReadSessionExpired(t)) {
           RuntimeException runtimeException =
               new RuntimeException(
@@ -329,6 +384,7 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
 
     @Override
     public void onComplete() {
+      releaseChannel();
       synchronized (controllerLock) {
         controller = null;
       }
@@ -394,6 +450,7 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
           }
         }
       }
+      releaseChannel();
     }
   }
 }
