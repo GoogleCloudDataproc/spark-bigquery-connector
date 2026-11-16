@@ -53,13 +53,15 @@ public class Spark34BigQueryScanBuilder extends Spark33BigQueryScanBuilder {
 
   @Override
   public CustomTaskMetric[] reportDriverMetrics() {
+    CustomTaskMetric[] baseMetrics = super.reportDriverMetrics();
     if (!numRowsBeforePruning.isPresent()) {
-      return new CustomTaskMetric[0];
+      return baseMetrics;
     }
     long rows = numRowsBeforePruning.getAsLong();
-    return new CustomTaskMetric[] {
+    CustomTaskMetric[] rowCountMetrics = {
       new SparkBigQueryTaskMetric(NUM_ROWS_BEFORE_PRUNING_METRICS[0].name(), rows),
       new SparkBigQueryTaskMetric(NUM_ROWS_BEFORE_PRUNING_METRICS[1].name(), rows)
     };
+    return ObjectArrays.concat(baseMetrics, rowCountMetrics, CustomTaskMetric.class);
   }
 }
