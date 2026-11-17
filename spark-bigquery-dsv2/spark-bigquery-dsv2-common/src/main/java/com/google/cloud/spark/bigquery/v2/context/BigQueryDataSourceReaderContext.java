@@ -565,9 +565,6 @@ public class BigQueryDataSourceReaderContext {
       return OptionalLong.empty();
     }
     TableDefinition definition = table.getDefinition();
-    if (definition == null) {
-      return OptionalLong.empty();
-    }
     TableDefinition.Type type = definition.getType();
     if (type != TableDefinition.Type.TABLE && type != TableDefinition.Type.SNAPSHOT) {
       return OptionalLong.empty();

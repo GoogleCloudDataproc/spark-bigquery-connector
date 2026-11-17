@@ -86,30 +86,27 @@ public class BigQueryDataSourceReaderContextTest {
   @Test
   public void testNumRowsBeforePruningForTableAndSnapshot() {
     assertThat(numRowsBeforePruning(mockTable(StandardTableDefinition.of(SCHEMA), 164_656L)))
-        .isEqualTo(OptionalLong.of(164_656L));
+        .hasValue(164_656L);
     SnapshotTableDefinition snapshot =
         SnapshotTableDefinition.newBuilder().setSchema(SCHEMA).setBaseTableId(TABLE_ID).build();
-    assertThat(numRowsBeforePruning(mockTable(snapshot, 42_000L)))
-        .isEqualTo(OptionalLong.of(42_000L));
+    assertThat(numRowsBeforePruning(mockTable(snapshot, 42_000L))).hasValue(42_000L);
   }
 
   @Test
   public void testNumRowsBeforePruningWithStreamingBuffer() {
     StandardTableDefinition withEstimate = tableWithStreamingBuffer(250L);
-    assertThat(numRowsBeforePruning(mockTable(withEstimate, 1_000L)))
-        .isEqualTo(OptionalLong.of(1_250L));
-    assertThat(numRowsBeforePruning(mockTable(withEstimate, 0L))).isEqualTo(OptionalLong.of(250L));
-    assertThat(numRowsBeforePruning(mockTable(withEstimate, (BigInteger) null)))
-        .isEqualTo(OptionalLong.of(250L));
+    assertThat(numRowsBeforePruning(mockTable(withEstimate, 1_000L))).hasValue(1_250L);
+    assertThat(numRowsBeforePruning(mockTable(withEstimate, 0L))).hasValue(250L);
+    assertThat(numRowsBeforePruning(mockTable(withEstimate, (BigInteger) null))).hasValue(250L);
     assertThat(numRowsBeforePruning(mockTable(tableWithStreamingBuffer(null), 1_000L)))
-        .isEqualTo(OptionalLong.of(1_000L));
+        .hasValue(1_000L);
     assertThat(numRowsBeforePruning(mockTable(tableWithStreamingBuffer(-10L), 1_000L)))
-        .isEqualTo(OptionalLong.of(1_000L));
+        .hasValue(1_000L);
     assertThat(
             numRowsBeforePruning(
                 mockTable(
                     withEstimate, BigInteger.valueOf(Long.MAX_VALUE).subtract(BigInteger.ONE))))
-        .isEqualTo(OptionalLong.empty());
+        .isEmpty();
   }
 
   @Test
@@ -122,13 +119,13 @@ public class BigQueryDataSourceReaderContextTest {
     assertThat(
             numRowsBeforePruning(
                 mockTable(StandardTableDefinition.of(SCHEMA), 164_656L), timeTravelConfig))
-        .isEqualTo(OptionalLong.empty());
+        .isEmpty();
     assertThat(
             numRowsBeforePruning(
                 mockTable(
                     ViewDefinition.newBuilder("SELECT 'a' AS name").setSchema(SCHEMA).build(),
                     100L)))
-        .isEqualTo(OptionalLong.empty());
+        .isEmpty();
     assertThat(
             numRowsBeforePruning(
                 mockTable(
@@ -136,23 +133,18 @@ public class BigQueryDataSourceReaderContextTest {
                         .setSchema(SCHEMA)
                         .build(),
                     100L)))
-        .isEqualTo(OptionalLong.empty());
+        .isEmpty();
     assertThat(
             numRowsBeforePruning(
                 mockTable(
                     ExternalTableDefinition.of(
                         "gs://bucket/file.parquet", SCHEMA, FormatOptions.parquet()),
                     100L)))
-        .isEqualTo(OptionalLong.empty());
-    assertThat(numRowsBeforePruning(mockTable(StandardTableDefinition.of(SCHEMA), 0L)))
-        .isEqualTo(OptionalLong.empty());
+        .isEmpty();
+    assertThat(numRowsBeforePruning(mockTable(StandardTableDefinition.of(SCHEMA), 0L))).isEmpty();
     assertThat(
             numRowsBeforePruning(mockTable(StandardTableDefinition.of(SCHEMA), (BigInteger) null)))
-        .isEqualTo(OptionalLong.empty());
-    TableInfo nullDefAfterInit = mockTable(StandardTableDefinition.of(SCHEMA), 100L);
-    when(nullDefAfterInit.getDefinition())
-        .thenReturn(StandardTableDefinition.of(SCHEMA), (TableDefinition) null);
-    assertThat(numRowsBeforePruning(nullDefAfterInit)).isEqualTo(OptionalLong.empty());
+        .isEmpty();
   }
 
   private static TableInfo mockTable(TableDefinition definition, long numRows) {

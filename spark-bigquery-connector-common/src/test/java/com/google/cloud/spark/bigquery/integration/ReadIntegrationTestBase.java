@@ -1741,6 +1741,8 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
             ImmutableMap.of());
     assertThat(result.get("status").getAsString()).isEqualTo("success");
     JsonObject tableMetrics = result.getAsJsonObject("table");
+    assertThat(tableMetrics.keySet())
+        .containsAtLeast("numRowsBeforePruning", "rawInputRows", "numOutputRows");
     assertThat(tableMetrics.get("numRowsBeforePruning").getAsLong())
         .isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
     assertThat(tableMetrics.get("rawInputRows").getAsLong())

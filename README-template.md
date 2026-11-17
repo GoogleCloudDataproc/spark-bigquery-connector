@@ -1419,7 +1419,7 @@ word-break:break-word
   </tr>
   <tr valign="top">
    <td><code>numRowsBeforePruning</code> / <code>rawInputRows</code></td>
-   <td>pre-pruning row count from BigQuery table metadata (plus any streaming buffer estimate), reported once per scan on the driver under both names (DataSource V2 on Spark 3.4+ for tables, snapshots, and materialized <code>query</code> reads; omitted for views, materialized views, external tables, <code>snapshotTimeMillis</code> reads, and empty tables).</td>
+   <td>pre-pruning row count from BigQuery table metadata (plus any streaming buffer estimate), reported once per scan on the driver (DataSource V2 on Spark 3.4+ for tables, snapshots, and materialized <code>query</code> reads; omitted for views, materialized views, external tables, <code>snapshotTimeMillis</code> reads, and empty tables). The same value is reported as <code>rawInputRows</code> for Spark builds that read only that name. Table metadata can lag recent writes: for example, a BigLake Iceberg table can report 0 rows for a short time after a write, and the metrics are omitted until the count is updated.</td>
   </tr>
 </table>
 
