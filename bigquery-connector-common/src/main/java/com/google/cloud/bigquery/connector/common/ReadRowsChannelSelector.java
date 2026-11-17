@@ -32,9 +32,10 @@ import org.slf4j.LoggerFactory;
  * channels. Ties are broken by rotating the starting channel, so that equally loaded channels are
  * used evenly.
  *
- * <p>This is a better default than round-robin for long-lived streams regardless of the transport
- * or of what makes a connection slow (network path, proxy, or server), since it limits the number
- * of streams that a single slow connection can affect.
+ * <p>This applies to long-lived streams regardless of the transport or of what makes a connection
+ * slow (network path, proxy, or server), since it limits the number of streams that a single slow
+ * connection can affect. It is only used when the {@code readRowsChannelSelection} option is {@link
+ * ReadRowsChannelSelection#LEAST_LOADED}, which is experimental and off by default.
  *
  * <p>The returned channel index is meant to be passed as the channel affinity of the ReadRows call,
  * so the selector must be created with the same number of channels as the client's pool. If gax's

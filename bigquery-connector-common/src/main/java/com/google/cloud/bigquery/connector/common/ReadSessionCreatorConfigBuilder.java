@@ -50,6 +50,7 @@ public class ReadSessionCreatorConfigBuilder {
   private long readSessionCacheDurationMins = 5L;
   private OptionalLong snapshotTimeMillis = OptionalLong.empty();
   private boolean enableArrowTimestampRebase = true;
+  private ReadRowsChannelSelection readRowsChannelSelection = ReadRowsChannelSelection.ROUND_ROBIN;
 
   @CanIgnoreReturnValue
   public ReadSessionCreatorConfigBuilder setViewsEnabled(boolean viewsEnabled) {
@@ -205,6 +206,13 @@ public class ReadSessionCreatorConfigBuilder {
     return this;
   }
 
+  @CanIgnoreReturnValue
+  public ReadSessionCreatorConfigBuilder setReadRowsChannelSelection(
+      ReadRowsChannelSelection readRowsChannelSelection) {
+    this.readRowsChannelSelection = readRowsChannelSelection;
+    return this;
+  }
+
   public ReadSessionCreatorConfig build() {
     return new ReadSessionCreatorConfig(
         viewsEnabled,
@@ -230,6 +238,7 @@ public class ReadSessionCreatorConfigBuilder {
         enableReadSessionCaching,
         readSessionCacheDurationMins,
         snapshotTimeMillis,
-        enableArrowTimestampRebase);
+        enableArrowTimestampRebase,
+        readRowsChannelSelection);
   }
 }

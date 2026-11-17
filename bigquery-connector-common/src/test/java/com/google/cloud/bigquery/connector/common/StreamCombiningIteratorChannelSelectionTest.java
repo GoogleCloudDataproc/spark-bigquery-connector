@@ -18,6 +18,8 @@ package com.google.cloud.bigquery.connector.common;
 import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import com.google.api.gax.core.NoCredentialsProvider;
@@ -283,7 +285,7 @@ public class StreamCombiningIteratorChannelSelectionTest {
   }
 
   @Test(timeout = 60_000)
-  public void readRowsHelperUsesTheSelectorOfTheClientFactory() throws Exception {
+  public void readRowsHelperUsesTheSelectorOfTheClientFactoryWhenLeastLoaded() throws Exception {
     ReadRowsChannelSelector selector = new ReadRowsChannelSelector(POOL_SIZE);
     BigQueryClientFactory clientFactory = mock(BigQueryClientFactory.class);
     when(clientFactory.getBigQueryReadClient()).thenReturn(client);
@@ -299,7 +301,8 @@ public class StreamCombiningIteratorChannelSelectionTest {
                 /* maxReadRowsRetries= */ 0,
                 Optional.empty(),
                 /* backgroundParsingThreads= */ 0,
-                /* prebufferResponses= */ 1),
+                /* prebufferResponses= */ 1,
+                ReadRowsChannelSelection.LEAST_LOADED),
             Optional.empty());
     helper.readRows();
 
@@ -310,25 +313,40 @@ public class StreamCombiningIteratorChannelSelectionTest {
   }
 
   @Test(timeout = 60_000)
-  public void readRowsHelperWorksWithoutASelector() throws Exception {
+  public void readRowsHelperUsesRoundRobinWithoutTheSelectorByDefault() throws Exception {
+    ReadRowsChannelSelector selector = new ReadRowsChannelSelector(POOL_SIZE);
     BigQueryClientFactory clientFactory = mock(BigQueryClientFactory.class);
     when(clientFactory.getBigQueryReadClient()).thenReturn(client);
+    when(clientFactory.getReadRowsChannelSelector()).thenReturn(selector);
+    // Sent without a channel affinity, so round-robin puts it on channel 0.
+    int longRunningChannel = startLongRunningStream("long-0", Optional.empty());
 
-    ReadRowsHelper helper =
-        new ReadRowsHelper(
-            clientFactory,
-            ReadRowsRequest.newBuilder().setReadStream(STREAM_PREFIX + "short-helper"),
-            new ReadRowsHelper.Options(
-                /* maxReadRowsRetries= */ 0,
-                Optional.empty(),
-                /* backgroundParsingThreads= */ 0,
-                /* prebufferResponses= */ 1),
-            Optional.empty());
-    try {
-      assertThat(ImmutableList.copyOf(helper.readRows())).hasSize(1);
-    } finally {
-      helper.close();
+    List<Integer> helperChannels = new ArrayList<>();
+    for (int i = 0; i < POOL_SIZE; i++) {
+      String name = "short-helper-" + i;
+      ReadRowsHelper helper =
+          new ReadRowsHelper(
+              clientFactory,
+              ReadRowsRequest.newBuilder().setReadStream(STREAM_PREFIX + name),
+              new ReadRowsHelper.Options(
+                  /* maxReadRowsRetries= */ 0,
+                  Optional.empty(),
+                  /* backgroundParsingThreads= */ 0,
+                  /* prebufferResponses= */ 1),
+              Optional.empty());
+      try {
+        assertThat(ImmutableList.copyOf(helper.readRows())).hasSize(1);
+      } finally {
+        helper.close();
+      }
+      helperChannels.add(service.channelOf(name));
     }
+
+    // The calls continue the pool's rotation, including the channel of the long-running stream.
+    assertThat(longRunningChannel).isEqualTo(0);
+    assertThat(helperChannels).containsExactly(1, 2, 0).inOrder();
+    verify(clientFactory, never()).getReadRowsChannelSelector();
+    assertThat(selector.getActiveStreams()).asList().containsExactly(0, 0, 0);
   }
 
   /**

@@ -12,9 +12,6 @@
 * PR #1549: A custom `AccessTokenProvider` set with `gcpAccessTokenProvider` can now come from
   the application's jars (for example added with `--jars`) when the connector is on the
   cluster's classpath.
-* PR #1553: ReadRows streams are now assigned to the least loaded channel of the read client's
-  gRPC channel pool, instead of round-robin, so that concurrent long-running streams use
-  separate connections.
 
 ## 0.46.1 - 2026-11-04
 
