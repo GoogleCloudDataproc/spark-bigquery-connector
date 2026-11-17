@@ -276,16 +276,17 @@ public class StreamCombiningIterator implements Iterator<ReadRowsResponse> {
         } catch (ExecutionException e) {
           log.error("Unable to obtain identity token", e);
         }
-        if (channelSelector.isPresent()) {
-          int channel = channelSelector.get().acquire();
-          observer.channel.set(channel);
-          callContext = callContext.withChannelAffinity(channel);
-          log.debug(
-              "ReadRows call for stream {} sent on channel {}", request.getReadStream(), channel);
-        }
         try {
+          if (channelSelector.isPresent()) {
+            int channel = channelSelector.get().acquire();
+            observer.channel.set(channel);
+            callContext = callContext.withChannelAffinity(channel);
+            log.debug(
+                "ReadRows call for stream {} sent on channel {}", request.getReadStream(), channel);
+          }
           client.readRowsCallable().call(request.build(), observer, callContext);
         } catch (Throwable t) {
+          // No-op when no channel was acquired.
           observer.releaseChannel();
           throw t;
         }
