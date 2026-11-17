@@ -50,6 +50,10 @@ import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
+import org.apache.spark.sql.execution.SparkPlan;
+import org.apache.spark.sql.execution.adaptive.AdaptiveSparkPlanExec;
+import org.apache.spark.sql.execution.datasources.v2.DataSourceV2ScanExecBase;
+import org.apache.spark.sql.execution.metric.SQLMetric;
 import org.apache.spark.sql.types.DataType;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Metadata;
@@ -62,6 +66,7 @@ import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import scala.Option;
 
 public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 {
 
@@ -1011,6 +1016,59 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
     return result;
   }
 
+  @SuppressWarnings("resource")
+  protected static JsonObject readNumRowsBeforePruningMetricApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    SparkSession spark =
+        IntegrationTestUtils.createSparkSessionBuilder("readNumRowsBeforePruningMetricApp")
+            .getOrCreate()
+            .newSession();
+    Dataset<Row> tableDf =
+        spark
+            .read()
+            .format("bigquery")
+            .load(TestConstants.SHAKESPEARE_TABLE)
+            .where("corpus = 'hamlet'");
+    tableDf.collectAsList();
+
+    Dataset<Row> viewDf =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset)
+            .option("table", TestConstants.SHAKESPEARE_VIEW)
+            .option("viewsEnabled", "true")
+            .load()
+            .where("corpus = 'hamlet'");
+    viewDf.collectAsList();
+
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+    result.add(
+        "table", scanMetrics(tableDf, "numRowsBeforePruning", "rawInputRows", "numOutputRows"));
+    result.add("view", scanMetrics(viewDf, "numRowsBeforePruning", "rawInputRows"));
+    return result;
+  }
+
+  private static JsonObject scanMetrics(Dataset<Row> df, String... names) {
+    SparkPlan plan = df.queryExecution().executedPlan();
+    if (plan instanceof AdaptiveSparkPlanExec) {
+      plan = ((AdaptiveSparkPlanExec) plan).executedPlan();
+    }
+    // Single-stage non-empty projection avoids AQE QueryStageExec and empty-projection nodes.
+    Option<SparkPlan> scan = plan.find(node -> node instanceof DataSourceV2ScanExecBase);
+    Preconditions.checkState(
+        scan.isDefined(), "No DataSource V2 scan in the executed plan:\n%s", plan);
+    JsonObject metrics = new JsonObject();
+    for (String name : names) {
+      Option<SQLMetric> metric = scan.get().metrics().get(name);
+      if (metric.isDefined()) {
+        metrics.addProperty(name, metric.get().value());
+      }
+    }
+    return metrics;
+  }
+
   // =========================================================================
   // JUNIT TEST CASES DELEGATION MAPPINGS
   // =========================================================================
@@ -1665,5 +1723,35 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
       assertThat(result.get("count").getAsLong())
           .isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
     }
+  }
+
+  @Test
+  public void testNumRowsBeforePruningMetric() throws Exception {
+    String sparkVersion = org.apache.spark.package$.MODULE$.SPARK_VERSION();
+    assumeTrue(
+        !userProvidedSchemaAllowed
+            && (sparkVersion.startsWith("3.4")
+                || sparkVersion.startsWith("3.5")
+                || sparkVersion.startsWith("4.")));
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readNumRowsBeforePruningMetricApp,
+            testDataset.toString(),
+            "",
+            ImmutableMap.of());
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    JsonObject tableMetrics = result.getAsJsonObject("table");
+    assertThat(tableMetrics.keySet())
+        .containsAtLeast("numRowsBeforePruning", "rawInputRows", "numOutputRows");
+    assertThat(tableMetrics.get("numRowsBeforePruning").getAsLong())
+        .isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
+    assertThat(tableMetrics.get("rawInputRows").getAsLong())
+        .isEqualTo(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
+    long numOutputRows = tableMetrics.get("numOutputRows").getAsLong();
+    assertThat(numOutputRows).isGreaterThan(0L);
+    assertThat(numOutputRows).isLessThan(TestConstants.SHAKESPEARE_TABLE_NUM_ROWS);
+    JsonObject viewMetrics = result.getAsJsonObject("view");
+    assertThat(viewMetrics.has("numRowsBeforePruning")).isFalse();
+    assertThat(viewMetrics.has("rawInputRows")).isFalse();
   }
 }

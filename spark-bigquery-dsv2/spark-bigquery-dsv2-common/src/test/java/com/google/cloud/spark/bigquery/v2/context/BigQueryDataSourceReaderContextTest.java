@@ -20,22 +20,34 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.cloud.bigquery.ExternalTableDefinition;
 import com.google.cloud.bigquery.Field;
+import com.google.cloud.bigquery.FormatOptions;
+import com.google.cloud.bigquery.MaterializedViewDefinition;
 import com.google.cloud.bigquery.Schema;
+import com.google.cloud.bigquery.SnapshotTableDefinition;
 import com.google.cloud.bigquery.StandardSQLTypeName;
 import com.google.cloud.bigquery.StandardTableDefinition;
+import com.google.cloud.bigquery.TableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
+import com.google.cloud.bigquery.ViewDefinition;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfigBuilder;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Optional;
+import java.util.OptionalLong;
 import java.util.stream.Collectors;
 import org.apache.spark.sql.types.StructType;
 import org.junit.Test;
 
 public class BigQueryDataSourceReaderContextTest {
+
+  private static final Schema SCHEMA = Schema.of(Field.of("name", StandardSQLTypeName.STRING));
+  private static final TableId TABLE_ID = TableId.of("project", "dataset", "table");
 
   @Test
   public void testEmptyProjectionPartitionsLargerThanIntMax() {
@@ -69,5 +81,114 @@ public class BigQueryDataSourceReaderContextTest {
 
     assertThat(partitionSizes).containsExactly(6_963_977_068L, 6_963_977_067L).inOrder();
     assertThat(partitionSizes.stream().mapToLong(Long::longValue).sum()).isEqualTo(rowCount);
+  }
+
+  @Test
+  public void testNumRowsBeforePruningForTableAndSnapshot() {
+    assertThat(numRowsBeforePruning(mockTable(StandardTableDefinition.of(SCHEMA), 164_656L)))
+        .hasValue(164_656L);
+    SnapshotTableDefinition snapshot =
+        SnapshotTableDefinition.newBuilder().setSchema(SCHEMA).setBaseTableId(TABLE_ID).build();
+    assertThat(numRowsBeforePruning(mockTable(snapshot, 42_000L))).hasValue(42_000L);
+  }
+
+  @Test
+  public void testNumRowsBeforePruningWithStreamingBuffer() {
+    StandardTableDefinition withEstimate = tableWithStreamingBuffer(250L);
+    assertThat(numRowsBeforePruning(mockTable(withEstimate, 1_000L))).hasValue(1_250L);
+    assertThat(numRowsBeforePruning(mockTable(withEstimate, 0L))).hasValue(250L);
+    assertThat(numRowsBeforePruning(mockTable(withEstimate, (BigInteger) null))).hasValue(250L);
+    assertThat(numRowsBeforePruning(mockTable(tableWithStreamingBuffer(null), 1_000L)))
+        .hasValue(1_000L);
+    assertThat(numRowsBeforePruning(mockTable(tableWithStreamingBuffer(-10L), 1_000L)))
+        .hasValue(1_000L);
+    assertThat(
+            numRowsBeforePruning(
+                mockTable(
+                    withEstimate, BigInteger.valueOf(Long.MAX_VALUE).subtract(BigInteger.ONE))))
+        .isEmpty();
+  }
+
+  @Test
+  public void testNumRowsBeforePruningOmittedCases() {
+    ReadSessionCreatorConfig timeTravelConfig =
+        new ReadSessionCreatorConfigBuilder()
+            .setDefaultParallelism(2)
+            .setSnapshotTimeMillis(OptionalLong.of(1_700_000_000_000L))
+            .build();
+    assertThat(
+            numRowsBeforePruning(
+                mockTable(StandardTableDefinition.of(SCHEMA), 164_656L), timeTravelConfig))
+        .isEmpty();
+    assertThat(
+            numRowsBeforePruning(
+                mockTable(
+                    ViewDefinition.newBuilder("SELECT 'a' AS name").setSchema(SCHEMA).build(),
+                    100L)))
+        .isEmpty();
+    assertThat(
+            numRowsBeforePruning(
+                mockTable(
+                    MaterializedViewDefinition.newBuilder("SELECT 'a' AS name")
+                        .setSchema(SCHEMA)
+                        .build(),
+                    100L)))
+        .isEmpty();
+    assertThat(
+            numRowsBeforePruning(
+                mockTable(
+                    ExternalTableDefinition.of(
+                        "gs://bucket/file.parquet", SCHEMA, FormatOptions.parquet()),
+                    100L)))
+        .isEmpty();
+    assertThat(numRowsBeforePruning(mockTable(StandardTableDefinition.of(SCHEMA), 0L))).isEmpty();
+    assertThat(
+            numRowsBeforePruning(mockTable(StandardTableDefinition.of(SCHEMA), (BigInteger) null)))
+        .isEmpty();
+  }
+
+  private static TableInfo mockTable(TableDefinition definition, long numRows) {
+    return mockTable(definition, BigInteger.valueOf(numRows));
+  }
+
+  private static TableInfo mockTable(TableDefinition definition, BigInteger numRows) {
+    TableInfo table = mock(TableInfo.class);
+    when(table.getTableId()).thenReturn(TABLE_ID);
+    when(table.getDefinition()).thenReturn(definition);
+    when(table.getNumRows()).thenReturn(numRows);
+    return table;
+  }
+
+  private static StandardTableDefinition tableWithStreamingBuffer(Long estimatedRows) {
+    StandardTableDefinition.StreamingBuffer streamingBuffer =
+        mock(StandardTableDefinition.StreamingBuffer.class);
+    when(streamingBuffer.getEstimatedRows()).thenReturn(estimatedRows);
+    return StandardTableDefinition.newBuilder()
+        .setSchema(SCHEMA)
+        .setStreamingBuffer(streamingBuffer)
+        .build();
+  }
+
+  private static OptionalLong numRowsBeforePruning(TableInfo table) {
+    return numRowsBeforePruning(
+        table, new ReadSessionCreatorConfigBuilder().setDefaultParallelism(2).build());
+  }
+
+  private static OptionalLong numRowsBeforePruning(
+      TableInfo table, ReadSessionCreatorConfig readSessionCreatorConfig) {
+    return new BigQueryDataSourceReaderContext(
+            table,
+            mock(BigQueryClient.class),
+            /* bigQueryReadClientFactory= */ null,
+            /* tracerFactory= */ null,
+            readSessionCreatorConfig,
+            /* globalFilter= */ Optional.empty(),
+            /* schema= */ Optional.of(new StructType()),
+            "applicationId",
+            mock(SparkBigQueryConfig.class),
+            /* sqlContext= */ null,
+            /* sparkSession= */ null,
+            /* readTableOptions= */ null)
+        .getNumRowsBeforePruning();
   }
 }

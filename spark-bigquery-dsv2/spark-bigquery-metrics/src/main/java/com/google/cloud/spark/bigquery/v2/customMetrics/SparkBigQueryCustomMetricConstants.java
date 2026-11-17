@@ -14,4 +14,10 @@ public class SparkBigQueryCustomMetricConstants {
   public static final String BIG_QUERY_NUMBER_OF_READ_STREAMS_METRIC_NAME = "bqNumReadStreams";
   static final String BIG_QUERY_NUMBER_OF_READ_STREAMS_METRIC_DESCRIPTION =
       "number of read streams";
+  public static final String BIG_QUERY_NUM_ROWS_BEFORE_PRUNING_METRIC_NAME = "numRowsBeforePruning";
+  static final String BIG_QUERY_NUM_ROWS_BEFORE_PRUNING_METRIC_DESCRIPTION =
+      "number of rows in the table before pruning and filters";
+  public static final String BIG_QUERY_RAW_INPUT_ROWS_METRIC_NAME = "rawInputRows";
+  static final String BIG_QUERY_RAW_INPUT_ROWS_METRIC_DESCRIPTION =
+      "number of rows in the table before pruning and filters (rawInputRows)";
 }
