@@ -17,6 +17,7 @@ package com.google.cloud.spark.bigquery.integration;
 
 import static com.google.cloud.spark.bigquery.integration.TestConstants.ALL_TYPES_TABLE_SCHEMA;
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assume.assumeTrue;
 
@@ -684,6 +685,37 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
     result.addProperty("filteredCount", filteredDf.count());
     result.addProperty("sortedFirstId", rows.get(0).getLong(0));
     result.addProperty("sortedFirstData", rows.get(0).getString(1));
+    return result;
+  }
+
+  @SuppressWarnings("resource")
+  protected static JsonObject readEmptyTableApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    // @SuppressWarnings("resource") is required because this helper uses newSession().
+    // In-process Spark tests are designed to be isolated; closing a newSession()
+    // will break session context for subsequent tests. Do not close this session.
+    @SuppressWarnings("resource")
+    SparkSession spark =
+        IntegrationTestUtils.createSparkSessionBuilder("readEmptyTableApp")
+            .getOrCreate()
+            .newSession();
+
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+    for (String format : ImmutableList.of("ARROW", "AVRO")) {
+      Dataset<Row> df =
+          spark
+              .read()
+              .format("bigquery")
+              .option("dataset", testDataset)
+              .option("table", testTable)
+              .option("readDataFormat", format)
+              .load();
+      JsonObject formatResult = new JsonObject();
+      formatResult.addProperty("schema", df.schema().simpleString());
+      formatResult.addProperty("collectedRows", df.collectAsList().size());
+      result.add(format, formatResult);
+    }
     return result;
   }
 
@@ -1480,6 +1512,31 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
     assertThat(result.get("filteredCount").getAsLong()).isEqualTo(2L);
     assertThat(result.get("sortedFirstId").getAsLong()).isEqualTo(2L);
     assertThat(result.get("sortedFirstData").getAsString()).isEqualTo("bar");
+  }
+
+  @Test
+  public void testReadEmptyTable() throws Exception {
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "CREATE TABLE %s.%s (id INT64, name STRING, tags ARRAY<STRING>,"
+                + " nested STRUCT<a INT64, b STRING>)",
+            testDataset, testTable));
+
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readEmptyTableApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of());
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    for (String format : ImmutableList.of("ARROW", "AVRO")) {
+      JsonObject formatResult = result.getAsJsonObject(format);
+      assertWithMessage(format)
+          .that(formatResult.get("schema").getAsString())
+          .isEqualTo(
+              "struct<id:bigint,name:string,tags:array<string>,nested:struct<a:bigint,b:string>>");
+      assertWithMessage(format).that(formatResult.get("collectedRows").getAsInt()).isEqualTo(0);
+    }
   }
 
   @Test
