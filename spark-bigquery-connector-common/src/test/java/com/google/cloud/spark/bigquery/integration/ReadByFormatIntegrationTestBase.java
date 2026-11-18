@@ -15,12 +15,15 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
+import static com.google.cloud.spark.bigquery.integration.DataTypeTestValues.SCALAR_TYPES;
 import static com.google.cloud.spark.bigquery.integration.TestConstants.GA4_TABLE;
 import static com.google.common.truth.Truth.assertThat;
 import static org.apache.spark.sql.functions.col;
 import static org.apache.spark.sql.functions.concat;
 import static org.apache.spark.sql.functions.lit;
 import static org.apache.spark.sql.functions.row_number;
+import static org.apache.spark.sql.functions.struct;
+import static org.apache.spark.sql.functions.to_json;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assume.assumeThat;
@@ -36,13 +39,16 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.spark.bigquery.DataSourceVersion;
 import com.google.cloud.spark.bigquery.direct.DirectBigQueryRelation;
+import com.google.cloud.spark.bigquery.integration.DataTypeTestValues.ScalarType;
 import com.google.cloud.spark.bigquery.integration.model.ColumnOrderTestClass;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Iterators;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -895,6 +901,154 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     assertThat(result.get("optimizedCount").getAsLong())
         .isEqualTo(result.get("oldMethodCount").getAsLong());
     assertThat(result.get("emptyRowRDDsCreated2").getAsInt()).isEqualTo(1);
+  }
+
+  // =========================================================================
+  // SCENARIO: Read every scalar type, nested in structs, arrays and maps
+  // =========================================================================
+
+  // More rows than an Arrow record batch holds (4096), so the read spans several batches.
+  private static final int DATA_TYPES_NUM_ROWS = 5000;
+
+  @SuppressWarnings("resource")
+  protected static JsonObject readDataTypesApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    @SuppressWarnings("resource")
+    SparkSession spark =
+        IntegrationTestUtils.createSparkSessionBuilder("ReadDataTypesTestApp")
+            .getOrCreate()
+            .newSession();
+    Dataset<Row> actual =
+        spark
+            .read()
+            .format("bigquery")
+            .option("dataset", testDataset)
+            .option("table", testTable)
+            .option("readDataFormat", parameters.get("dataFormat"))
+            .load();
+    Dataset<Row> expected =
+        spark.range(DATA_TYPES_NUM_ROWS).selectExpr(parameters.get("expectedColumns").split("\n"));
+
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+    result.addProperty("actualSchema", actual.schema().simpleString());
+    result.addProperty("expectedSchema", expected.schema().simpleString());
+    // to_json gives a comparable form for binary, map and nested values. The timestamp formats keep
+    // the microseconds, which the default formats drop.
+    List<String> actualRows = toJsonRows(actual);
+    List<String> expectedRows = toJsonRows(expected);
+    result.addProperty("numRows", actualRows.size());
+    JsonArray mismatches = new JsonArray();
+    for (int i = 0; i < Math.min(actualRows.size(), expectedRows.size()); i++) {
+      if (!actualRows.get(i).equals(expectedRows.get(i)) && mismatches.size() < 5) {
+        mismatches.add("actual:   " + actualRows.get(i) + "\nexpected: " + expectedRows.get(i));
+      }
+    }
+    result.add("mismatches", mismatches);
+    return result;
+  }
+
+  private static List<String> toJsonRows(Dataset<Row> df) {
+    Map<String, String> options =
+        ImmutableMap.of(
+            "timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSSSSXXX",
+            "timestampNTZFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSSSS");
+    return df.orderBy("id")
+        .select(to_json(struct(col("*")), options))
+        .as(Encoders.STRING())
+        .collectAsList();
+  }
+
+  @Test
+  public void testReadDataTypes() throws Exception {
+    // The expected values use TIMESTAMP_NTZ, which Spark supports from 3.4.
+    assumeThat(timeStampNTZType.isPresent(), is(true));
+    List<String> columns = new ArrayList<>();
+    List<String> bigQueryValues = new ArrayList<>();
+    List<String> expectedColumns = new ArrayList<>();
+    columns.add("id INT64");
+    bigQueryValues.add("i");
+    expectedColumns.add("id");
+    // Every third row has NULL scalars, a NULL struct (on a different row) and empty arrays and
+    // maps, since BigQuery stores a NULL array as an empty one.
+    for (ScalarType type : SCALAR_TYPES) {
+      columns.add(String.format("scalar_%s %s", type.name, type.bigQueryType));
+      bigQueryValues.add(String.format("IF(MOD(i, 3) = 0, NULL, %s)", type.bigQueryValue("i")));
+      expectedColumns.add(
+          String.format(
+              "IF(id %% 3 = 0, NULL, %s) AS scalar_%s", type.sparkValue("id"), type.name));
+    }
+    columns.add(
+        SCALAR_TYPES.stream()
+            .map(type -> String.format("f_%s %s", type.name, type.bigQueryType))
+            .collect(Collectors.joining(", ", "struct_all STRUCT<", ">")));
+    bigQueryValues.add(
+        SCALAR_TYPES.stream()
+            .map(type -> String.format("%s AS f_%s", type.bigQueryValue("i"), type.name))
+            .collect(Collectors.joining(", ", "IF(MOD(i, 3) = 1, NULL, STRUCT(", "))")));
+    expectedColumns.add(
+        SCALAR_TYPES.stream()
+            .map(type -> String.format("'f_%s', %s", type.name, type.sparkValue("id")))
+            .collect(
+                Collectors.joining(
+                    ", ", "IF(id % 3 = 1, NULL, named_struct(", ")) AS struct_all")));
+    // ARRAY<INT64> and maps with INT64 values are read by other tests.
+    for (ScalarType type : SCALAR_TYPES) {
+      if (type.name.equals("int64")) {
+        continue;
+      }
+      // The Avro read path returns NULL elements for ARRAY<BIGNUMERIC>.
+      boolean skipArray = dataFormat.equals("AVRO") && type.name.equals("bignumeric");
+      if (!skipArray) {
+        columns.add(String.format("array_%s ARRAY<%s>", type.name, type.bigQueryType));
+        bigQueryValues.add(
+            String.format(
+                "IF(MOD(i, 3) = 0, [], [%s, %s])",
+                type.bigQueryValue("i"), type.bigQueryValue("i + 1")));
+        expectedColumns.add(
+            String.format(
+                "filter(array(%s, %s), e -> id %% 3 != 0) AS array_%s",
+                type.sparkValue("id"), type.sparkValue("id + 1"), type.name));
+      }
+      // The connector reads a repeated key/value struct as a Spark map. The Avro read path doesn't
+      // convert these columns.
+      if (dataFormat.equals("AVRO")) {
+        continue;
+      }
+      columns.add(
+          String.format(
+              "map_%s ARRAY<STRUCT<key STRING NOT NULL, value %s>>", type.name, type.bigQueryType));
+      bigQueryValues.add(
+          String.format(
+              "IF(MOD(i, 3) = 0, [], [STRUCT('a' AS key, %s AS value), STRUCT('b', %s)])",
+              type.bigQueryValue("i"), type.bigQueryValue("i + 1")));
+      expectedColumns.add(
+          String.format(
+              "map_filter(map('a', %s, 'b', %s), (k, v) -> id %% 3 != 0) AS map_%s",
+              type.sparkValue("id"), type.sparkValue("id + 1"), type.name));
+    }
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "CREATE TABLE %s.%s (%s) AS SELECT %s FROM UNNEST(GENERATE_ARRAY(0, %d)) AS i",
+            testDataset,
+            testTable,
+            String.join(", ", columns),
+            String.join(", ", bigQueryValues),
+            DATA_TYPES_NUM_ROWS - 1));
+
+    JsonObject result =
+        testRunner.run(
+            ReadByFormatIntegrationTestBase::readDataTypesApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of(
+                "dataFormat", dataFormat, "expectedColumns", String.join("\n", expectedColumns)));
+
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    assertThat(result.get("actualSchema").getAsString())
+        .isEqualTo(result.get("expectedSchema").getAsString());
+    assertThat(result.get("numRows").getAsInt()).isEqualTo(DATA_TYPES_NUM_ROWS);
+    assertThat(result.getAsJsonArray("mismatches")).isEmpty();
   }
 
   protected Set<String> extractWords(Dataset<Row> df) {
