@@ -35,8 +35,8 @@ public class TestDataset extends ExternalResource {
 
   @Override
   protected void before() throws Throwable {
-    IntegrationTestUtils.createDataset(testDataset);
     try {
+      IntegrationTestUtils.createDataset(testDataset);
       IntegrationTestUtils.runQuery(
           String.format(
               TestConstants.ALL_TYPES_TABLE_QUERY_TEMPLATE,
@@ -64,7 +64,7 @@ public class TestDataset extends ExternalResource {
       // populated dataset here rather than leaking it.
       try {
         IntegrationTestUtils.deleteDatasetAndTables(testDataset);
-      } catch (Exception cleanupException) {
+      } catch (Throwable cleanupException) {
         t.addSuppressed(cleanupException);
       }
       throw t;
