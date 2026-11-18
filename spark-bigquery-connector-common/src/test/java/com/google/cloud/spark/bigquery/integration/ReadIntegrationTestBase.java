@@ -25,6 +25,7 @@ import com.google.cloud.bigquery.BigQuery;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.FormatOptions;
 import com.google.cloud.bigquery.Table;
+import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.connector.common.integration.DefaultCredentialsDelegateAccessTokenProvider;
 import com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils;
 import com.google.common.base.Preconditions;
@@ -652,6 +653,65 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
     JsonObject result = new JsonObject();
     result.addProperty("status", "success");
     result.addProperty("matches", Arrays.equals(allTypesRows, snapshotRows));
+    return result;
+  }
+
+  @SuppressWarnings("resource")
+  protected static JsonObject readSqlCountStarApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    // @SuppressWarnings("resource") is required because this helper uses newSession().
+    // In-process Spark tests are designed to be isolated; closing a newSession()
+    // will break session context for subsequent tests. Do not close this session.
+    @SuppressWarnings("resource")
+    SparkSession spark =
+        IntegrationTestUtils.createSparkSessionBuilder("readSqlCountStarApp")
+            .getOrCreate()
+            .newSession();
+    Dataset<Row> shakespeare =
+        spark.read().format("bigquery").load(TestConstants.SHAKESPEARE_TABLE);
+    shakespeare.createOrReplaceTempView("shakespeare");
+    spark
+        .read()
+        .format("bigquery")
+        .load(parameters.get("emptyTable"))
+        .createOrReplaceTempView("empty_table");
+    spark
+        .read()
+        .format("bigquery")
+        .load(parameters.get("unalignedTable"))
+        .createOrReplaceTempView("unaligned_table");
+    spark
+        .read()
+        .format("bigquery")
+        .load(parameters.get("largeTable"))
+        .createOrReplaceTempView("large_table");
+
+    Map<String, String> queries =
+        ImmutableMap.<String, String>builder()
+            .put("countStar", "SELECT COUNT(*) FROM shakespeare")
+            .put("countOne", "SELECT COUNT(1) FROM shakespeare")
+            .put("emptyTable", "SELECT COUNT(*) FROM empty_table")
+            .put("unalignedTable", "SELECT COUNT(*) FROM unaligned_table")
+            .put(
+                "coalesceOne",
+                "SELECT COUNT(*) FROM (SELECT /*+ COALESCE(1) */ 1 FROM unaligned_table)")
+            .put(
+                "unionAll",
+                "SELECT COUNT(*) FROM (SELECT 1 FROM shakespeare UNION ALL SELECT 1 FROM"
+                    + " unaligned_table)")
+            .put(
+                "coalesceLimit",
+                "SELECT COUNT(*) FROM (SELECT /*+ COALESCE(1) */ 1 FROM shakespeare LIMIT 1000)")
+            .put("filtered", "SELECT COUNT(*) FROM shakespeare WHERE corpus = 'hamlet'")
+            .put("filteredToZero", "SELECT COUNT(*) FROM shakespeare WHERE word_count < 0")
+            .put("largeTable", "SELECT COUNT(*) FROM large_table")
+            .build();
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+    for (Map.Entry<String, String> query : queries.entrySet()) {
+      result.addProperty(query.getKey(), spark.sql(query.getValue()).head().getLong(0));
+    }
+    result.addProperty("dataFrameCount", shakespeare.count());
     return result;
   }
 
@@ -1454,6 +1514,53 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
             ImmutableMap.of("snapshot", snapshot, "allTypes", allTypes));
     assertThat(result.get("status").getAsString()).isEqualTo("success");
     assertThat(result.get("matches").getAsBoolean()).isTrue();
+  }
+
+  // COUNT(*) without selected columns takes the empty projection path, which gets the row count
+  // from BigQuery and splits it across empty partitions instead of reading rows.
+  @Test
+  public void testSqlCountStar() throws Exception {
+    String emptyTable = testDataset + "." + testTable + "_empty";
+    String unalignedTable = testDataset + "." + testTable + "_unaligned";
+    IntegrationTestUtils.runQuery(String.format("CREATE TABLE %s (id INT64)", emptyTable));
+    // 257 rows, a prime, so the rows don't divide evenly across the partitions.
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "CREATE TABLE %s AS SELECT id FROM UNNEST(GENERATE_ARRAY(1, 257)) AS id",
+            unalignedTable));
+    // A public table with more rows than Integer.MAX_VALUE. COUNT(*) on it is answered from the
+    // table metadata, so it doesn't scan the table.
+    String largeTable = "bigquery-public-data.github_repos.files";
+    long largeTableRows =
+        bigQuery
+            .getTable(TableId.of("bigquery-public-data", "github_repos", "files"))
+            .getNumRows()
+            .longValue();
+    assertThat(largeTableRows).isGreaterThan((long) Integer.MAX_VALUE);
+
+    JsonObject result =
+        testRunner.run(
+            ReadIntegrationTestBase::readSqlCountStarApp,
+            testDataset.toString(),
+            testTable,
+            ImmutableMap.of(
+                "emptyTable", emptyTable,
+                "unalignedTable", unalignedTable,
+                "largeTable", largeTable));
+
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    long shakespeareRows = TestConstants.SHAKESPEARE_TABLE_NUM_ROWS;
+    assertThat(result.get("countStar").getAsLong()).isEqualTo(shakespeareRows);
+    assertThat(result.get("countOne").getAsLong()).isEqualTo(shakespeareRows);
+    assertThat(result.get("dataFrameCount").getAsLong()).isEqualTo(shakespeareRows);
+    assertThat(result.get("emptyTable").getAsLong()).isEqualTo(0);
+    assertThat(result.get("unalignedTable").getAsLong()).isEqualTo(257);
+    assertThat(result.get("coalesceOne").getAsLong()).isEqualTo(257);
+    assertThat(result.get("unionAll").getAsLong()).isEqualTo(shakespeareRows + 257);
+    assertThat(result.get("coalesceLimit").getAsLong()).isEqualTo(1000);
+    assertThat(result.get("filtered").getAsLong()).isEqualTo(5318);
+    assertThat(result.get("filteredToZero").getAsLong()).isEqualTo(0);
+    assertThat(result.get("largeTable").getAsLong()).isEqualTo(largeTableRows);
   }
 
   @Test
