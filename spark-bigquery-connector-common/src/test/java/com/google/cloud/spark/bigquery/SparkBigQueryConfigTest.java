@@ -18,6 +18,7 @@ package com.google.cloud.spark.bigquery;
 import static com.google.cloud.spark.bigquery.SparkBigQueryConfig.BIGQUERY_JOB_LABEL_PREFIX;
 import static com.google.cloud.spark.bigquery.SparkBigQueryConfig.BIGQUERY_TABLE_LABEL_PREFIX;
 import static com.google.common.truth.Truth.assertThat;
+import static com.google.common.truth.Truth.assertWithMessage;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.fail;
 
@@ -28,6 +29,9 @@ import com.google.cloud.bigquery.RangePartitioning;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
+import com.google.cloud.bigquery.connector.common.ReadRowsChannelSelection;
+import com.google.cloud.bigquery.connector.common.ReadRowsHelper;
+import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
 import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
 import com.google.cloud.bigquery.storage.v1.DataFormat;
 import com.google.cloud.bigquery.storage.v1.ReadSession.TableReadOptions.ResponseCompressionCodec;
@@ -136,6 +140,14 @@ public class SparkBigQueryConfigTest {
     assertThat(config.getBigQueryJobTimeoutInMinutes()).isEqualTo(6 * 60);
     assertThat(config.getGpn()).isEmpty();
     assertThat(config.getSnapshotTimeMillis()).isEmpty();
+    assertThat(config.getReadRowsChannelSelection())
+        .isEqualTo(ReadRowsChannelSelection.ROUND_ROBIN);
+    assertThat(
+            config
+                .toReadSessionCreatorConfig()
+                .toReadRowsHelperOptions()
+                .getReadRowsChannelSelection())
+        .isEqualTo(ReadRowsChannelSelection.ROUND_ROBIN);
   }
 
   @Test
@@ -371,6 +383,102 @@ public class SparkBigQueryConfigTest {
             "Compression codec 'RANDOMCOMPRESSION' for Arrow is not supported."
                 + " Supported formats are "
                 + Arrays.toString(CompressionCodec.values()));
+  }
+
+  @Test
+  public void testReadRowsChannelSelectionIsCaseInsensitive() {
+    for (String value : ImmutableList.of("least_loaded", "LEAST_LOADED", "Least_Loaded")) {
+      SparkBigQueryConfig config =
+          SparkBigQueryConfig.from(
+              ImmutableMap.of("table", "dataset.table", "readRowsChannelSelection", value),
+              defaultGlobalOptions,
+              new Configuration(),
+              ImmutableMap.of(),
+              DEFAULT_PARALLELISM,
+              new SQLConf(),
+              SPARK_VERSION,
+              Optional.empty(), /* tableIsMandatory */
+              true);
+
+      assertWithMessage(value)
+          .that(config.getReadRowsChannelSelection())
+          .isEqualTo(ReadRowsChannelSelection.LEAST_LOADED);
+      ReadSessionCreatorConfig readSessionCreatorConfig = config.toReadSessionCreatorConfig();
+      assertWithMessage(value)
+          .that(readSessionCreatorConfig.getReadRowsChannelSelection())
+          .isEqualTo(ReadRowsChannelSelection.LEAST_LOADED);
+      // The options are sent to the executors.
+      ReadRowsHelper.Options readRowsHelperOptions =
+          BigQueryUtil.verifySerialization(readSessionCreatorConfig.toReadRowsHelperOptions());
+      assertWithMessage(value)
+          .that(readRowsHelperOptions.getReadRowsChannelSelection())
+          .isEqualTo(ReadRowsChannelSelection.LEAST_LOADED);
+    }
+  }
+
+  @Test
+  public void testReadRowsChannelSelectionFromGlobalOptions() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            defaultOptions,
+            ImmutableMap.<String, String>builder()
+                .put("spark.datasource.bigquery.readRowsChannelSelection", "least_loaded")
+                .putAll(defaultGlobalOptions)
+                .build(),
+            new Configuration(),
+            ImmutableMap.of(),
+            DEFAULT_PARALLELISM,
+            new SQLConf(),
+            SPARK_VERSION,
+            Optional.empty(), /* tableIsMandatory */
+            true);
+
+    assertThat(config.getReadRowsChannelSelection())
+        .isEqualTo(ReadRowsChannelSelection.LEAST_LOADED);
+  }
+
+  @Test
+  public void testReadRowsChannelSelectionRoundRobin() {
+    SparkBigQueryConfig config =
+        SparkBigQueryConfig.from(
+            ImmutableMap.of("table", "dataset.table", "readRowsChannelSelection", "round_robin"),
+            defaultGlobalOptions,
+            new Configuration(),
+            ImmutableMap.of(),
+            DEFAULT_PARALLELISM,
+            new SQLConf(),
+            SPARK_VERSION,
+            Optional.empty(), /* tableIsMandatory */
+            true);
+
+    assertThat(config.getReadRowsChannelSelection())
+        .isEqualTo(ReadRowsChannelSelection.ROUND_ROBIN);
+    assertThat(config.toReadSessionCreatorConfig().getReadRowsChannelSelection())
+        .isEqualTo(ReadRowsChannelSelection.ROUND_ROBIN);
+  }
+
+  @Test
+  public void testInvalidReadRowsChannelSelection() {
+    IllegalArgumentException exception =
+        assertThrows(
+            IllegalArgumentException.class,
+            () ->
+                SparkBigQueryConfig.from(
+                    ImmutableMap.of("table", "dataset.table", "readRowsChannelSelection", "random"),
+                    defaultGlobalOptions,
+                    new Configuration(),
+                    ImmutableMap.of(),
+                    DEFAULT_PARALLELISM,
+                    new SQLConf(),
+                    SPARK_VERSION,
+                    Optional.empty(), /* tableIsMandatory */
+                    true));
+
+    assertThat(exception)
+        .hasMessageThat()
+        .isEqualTo(
+            "ReadRows channel selection 'RANDOM' is not supported."
+                + " Supported values are [ROUND_ROBIN, LEAST_LOADED]");
   }
 
   @Test

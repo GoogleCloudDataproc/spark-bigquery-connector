@@ -106,6 +106,42 @@ public class BigQueryClientFactoryTest {
   }
 
   @Test
+  public void testReadRowsChannelSelectorHasOneEntryPerPooledChannel() {
+    BigQueryClientFactory clientFactory =
+        new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider, bigQueryConfig);
+
+    when(bigQueryConfig.getBigQueryProxyConfig()).thenReturn(bigQueryProxyConfig);
+    when(bigQueryConfig.getChannelPoolSize()).thenReturn(4);
+
+    ReadRowsChannelSelector selector = clientFactory.getReadRowsChannelSelector();
+    assertThat(selector.getNumChannels()).isEqualTo(4);
+    assertThat(clientFactory.getReadRowsChannelSelector()).isSameInstanceAs(selector);
+  }
+
+  @Test
+  public void testReadRowsChannelSelectorIsSharedWithTheCachedReadClient() {
+    BigQueryClientFactory clientFactory =
+        new BigQueryClientFactory(
+            bigQueryCredentialsSupplier,
+            headerProvider,
+            new TestBigQueryConfig(Optional.of("localhost:9999"), /* channelPoolSize= */ 2));
+    BigQueryReadClient readClient = clientFactory.getBigQueryReadClient();
+
+    // The channel pool size is not part of the client cache key, so a second factory reuses the
+    // cached client, and must use the selector that matches that client's pool.
+    BigQueryClientFactory clientFactory2 =
+        new BigQueryClientFactory(
+            bigQueryCredentialsSupplier,
+            headerProvider,
+            new TestBigQueryConfig(Optional.of("localhost:9999"), /* channelPoolSize= */ 5));
+
+    assertThat(clientFactory2.getBigQueryReadClient()).isSameInstanceAs(readClient);
+    ReadRowsChannelSelector selector = clientFactory2.getReadRowsChannelSelector();
+    assertThat(selector.getNumChannels()).isEqualTo(2);
+    assertThat(clientFactory.getReadRowsChannelSelector()).isSameInstanceAs(selector);
+  }
+
+  @Test
   public void testGetReadClientWithUserAgent() {
     BigQueryClientFactory clientFactory =
         new BigQueryClientFactory(bigQueryCredentialsSupplier, headerProvider, bigQueryConfig);
@@ -534,9 +570,15 @@ public class BigQueryClientFactoryTest {
   private class TestBigQueryConfig implements BigQueryConfig {
 
     private final Optional<String> bigQueryStorageGrpcEndpoint;
+    private final int channelPoolSize;
 
     TestBigQueryConfig(Optional<String> bigQueryStorageGrpcEndpoint) {
+      this(bigQueryStorageGrpcEndpoint, 1);
+    }
+
+    TestBigQueryConfig(Optional<String> bigQueryStorageGrpcEndpoint, int channelPoolSize) {
       this.bigQueryStorageGrpcEndpoint = bigQueryStorageGrpcEndpoint;
+      this.channelPoolSize = channelPoolSize;
     }
 
     @Override
@@ -671,7 +713,7 @@ public class BigQueryClientFactoryTest {
 
     @Override
     public int getChannelPoolSize() {
-      return 1;
+      return channelPoolSize;
     }
 
     @Override

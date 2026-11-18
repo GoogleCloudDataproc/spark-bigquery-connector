@@ -47,6 +47,7 @@ public class ReadSessionCreatorConfig {
   private final long readSessionCacheDurationMins;
   private final OptionalLong snapshotTimeMillis;
   private final boolean enableArrowTimestampRebase;
+  private final ReadRowsChannelSelection readRowsChannelSelection;
 
   ReadSessionCreatorConfig(
       boolean viewsEnabled,
@@ -72,7 +73,8 @@ public class ReadSessionCreatorConfig {
       boolean enableReadSessionCaching,
       long readSessionCacheDurationMins,
       OptionalLong snapshotTimeMillis,
-      boolean enableArrowTimestampRebase) {
+      boolean enableArrowTimestampRebase,
+      ReadRowsChannelSelection readRowsChannelSelection) {
     this.viewsEnabled = viewsEnabled;
     this.viewEnabledParamName = viewEnabledParamName;
     this.materializationProject = materializationProject;
@@ -97,6 +99,7 @@ public class ReadSessionCreatorConfig {
     this.readSessionCacheDurationMins = readSessionCacheDurationMins;
     this.snapshotTimeMillis = snapshotTimeMillis;
     this.enableArrowTimestampRebase = enableArrowTimestampRebase;
+    this.readRowsChannelSelection = readRowsChannelSelection;
   }
 
   public boolean isViewsEnabled() {
@@ -168,7 +171,8 @@ public class ReadSessionCreatorConfig {
         getMaxReadRowsRetries(),
         getBigQueryStorageGrpcEndpoint(),
         backgroundParsingThreads(),
-        getPrebufferResponses());
+        getPrebufferResponses(),
+        getReadRowsChannelSelection());
   }
 
   public int streamsPerPartition() {
@@ -201,5 +205,14 @@ public class ReadSessionCreatorConfig {
 
   public boolean getEnableArrowTimestampRebase() {
     return enableArrowTimestampRebase;
+  }
+
+  /**
+   * Returns how ReadRows calls are assigned to channels. {@link
+   * ReadRowsChannelSelection#LEAST_LOADED} is experimental and off by default, see {@link
+   * ReadRowsChannelSelection}.
+   */
+  public ReadRowsChannelSelection getReadRowsChannelSelection() {
+    return readRowsChannelSelection;
   }
 }

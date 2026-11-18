@@ -50,6 +50,7 @@ import com.google.cloud.bigquery.connector.common.BigQueryProxyConfig;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.bigquery.connector.common.MaterializationConfiguration;
 import com.google.cloud.bigquery.connector.common.QueryParameterHelper;
+import com.google.cloud.bigquery.connector.common.ReadRowsChannelSelection;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfigBuilder;
 import com.google.cloud.bigquery.storage.v1.ArrowSerializationOptions.CompressionCodec;
@@ -160,6 +161,18 @@ public class SparkBigQueryConfig
   private static final int DEFAULT_BIGQUERY_CLIENT_RETRIES = 10;
   private static final String ARROW_COMPRESSION_CODEC_OPTION = "arrowCompressionCodec";
   private static final String RESPONSE_COMPRESSION_CODEC_OPTION = "responseCompressionCodec";
+
+  /**
+   * Selects how ReadRows streams are assigned to the read client's gRPC channels, see {@link
+   * ReadRowsChannelSelection}. {@code LEAST_LOADED} is experimental and off by default. The option
+   * is intentionally not in the public documentation for now, and may change or be removed.
+   */
+  static final String READ_ROWS_CHANNEL_SELECTION_OPTION = "readRowsChannelSelection";
+
+  @VisibleForTesting
+  static final ReadRowsChannelSelection DEFAULT_READ_ROWS_CHANNEL_SELECTION =
+      ReadRowsChannelSelection.ROUND_ROBIN;
+
   private static final WriteMethod DEFAULT_WRITE_METHOD = WriteMethod.INDIRECT;
   public static final int DEFAULT_CACHE_EXPIRATION_IN_MINUTES = 15;
   static final String BIGQUERY_JOB_LABEL_PREFIX = "bigQueryJobLabel.";
@@ -250,6 +263,7 @@ public class SparkBigQueryConfig
   private SparkBigQueryProxyAndHttpConfig sparkBigQueryProxyAndHttpConfig;
   private CompressionCodec arrowCompressionCodec = DEFAULT_ARROW_COMPRESSION_CODEC;
   private ResponseCompressionCodec responseCompressionCodec = DEFAULT_RESPONSE_COMPRESSION_CODEC;
+  private ReadRowsChannelSelection readRowsChannelSelection = DEFAULT_READ_ROWS_CHANNEL_SELECTION;
   private WriteMethod writeMethod = DEFAULT_WRITE_METHOD;
   boolean writeAtLeastOnce = false;
   private int cacheExpirationTimeInMinutes = DEFAULT_CACHE_EXPIRATION_IN_MINUTES;
@@ -636,6 +650,21 @@ public class SparkBigQueryConfig
               responseCompressionCodecParam, Arrays.toString(ResponseCompressionCodec.values())));
     }
 
+    String readRowsChannelSelectionParam =
+        getAnyOption(globalOptions, options, READ_ROWS_CHANNEL_SELECTION_OPTION)
+            .transform(value -> value.toUpperCase(Locale.ENGLISH))
+            .or(DEFAULT_READ_ROWS_CHANNEL_SELECTION.toString());
+
+    try {
+      config.readRowsChannelSelection =
+          ReadRowsChannelSelection.valueOf(readRowsChannelSelectionParam);
+    } catch (IllegalArgumentException e) {
+      throw new IllegalArgumentException(
+          format(
+              "ReadRows channel selection '%s' is not supported. Supported values are %s",
+              readRowsChannelSelectionParam, Arrays.toString(ReadRowsChannelSelection.values())));
+    }
+
     config.cacheExpirationTimeInMinutes =
         getAnyOption(globalOptions, options, "cacheExpirationTimeInMinutes")
             .transform(Integer::parseInt)
@@ -1005,6 +1034,15 @@ public class SparkBigQueryConfig
     return responseCompressionCodec;
   }
 
+  /**
+   * Returns how ReadRows streams are assigned to the read client's gRPC channels. {@code
+   * LEAST_LOADED} is experimental and off by default, and the {@code readRowsChannelSelection}
+   * option is intentionally not in the public documentation for now. It may change or be removed.
+   */
+  public ReadRowsChannelSelection getReadRowsChannelSelection() {
+    return readRowsChannelSelection;
+  }
+
   public boolean isCombinePushedDownFilters() {
     return combinePushedDownFilters;
   }
@@ -1266,6 +1304,7 @@ public class SparkBigQueryConfig
         .setReadSessionCacheDurationMins(readSessionCacheDurationMins)
         .setSnapshotTimeMillis(getSnapshotTimeMillis())
         .setEnableArrowTimestampRebase(enableArrowTimestampRebase)
+        .setReadRowsChannelSelection(readRowsChannelSelection)
         .build();
   }
 

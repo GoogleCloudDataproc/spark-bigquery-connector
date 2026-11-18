@@ -40,16 +40,33 @@ public class ReadRowsHelper implements AutoCloseable {
     private final String nullableEndpoint;
     private final int backgroundParsingThreads;
     private final int prebufferResponses;
+    private final ReadRowsChannelSelection readRowsChannelSelection;
 
     public Options(
         int maxReadRowsRetries,
         Optional<String> endpoint,
         int backgroundParsingThreads,
         int prebufferResponses) {
+      this(
+          maxReadRowsRetries,
+          endpoint,
+          backgroundParsingThreads,
+          prebufferResponses,
+          ReadRowsChannelSelection.ROUND_ROBIN);
+    }
+
+    public Options(
+        int maxReadRowsRetries,
+        Optional<String> endpoint,
+        int backgroundParsingThreads,
+        int prebufferResponses,
+        ReadRowsChannelSelection readRowsChannelSelection) {
       this.maxReadRowsRetries = maxReadRowsRetries;
       this.nullableEndpoint = endpoint.orElse(null);
       this.backgroundParsingThreads = backgroundParsingThreads;
       this.prebufferResponses = prebufferResponses;
+      this.readRowsChannelSelection =
+          requireNonNull(readRowsChannelSelection, "readRowsChannelSelection cannot be null");
     }
 
     public int getMaxReadRowsRetries() {
@@ -66,6 +83,15 @@ public class ReadRowsHelper implements AutoCloseable {
 
     public int numPrebufferResponses() {
       return prebufferResponses;
+    }
+
+    /**
+     * Returns how ReadRows calls are assigned to channels. {@link
+     * ReadRowsChannelSelection#LEAST_LOADED} is experimental and off by default, see {@link
+     * ReadRowsChannelSelection}.
+     */
+    public ReadRowsChannelSelection getReadRowsChannelSelection() {
+      return readRowsChannelSelection;
     }
   }
 
@@ -105,10 +131,21 @@ public class ReadRowsHelper implements AutoCloseable {
     }
     bigQueryStorageReadRowsTracer.ifPresent(tracer -> tracer.startStream());
     BigQueryReadClient client = bigQueryReadClientFactory.getBigQueryReadClient();
+    // With ROUND_ROBIN, no channel affinity is set and the gax channel pool picks the channel. The
+    // selector of a cached read client is shared by all reads using that client, and only counts
+    // the streams of LEAST_LOADED reads.
+    Optional<ReadRowsChannelSelector> channelSelector =
+        options.getReadRowsChannelSelection() == ReadRowsChannelSelection.LEAST_LOADED
+            ? Optional.ofNullable(bigQueryReadClientFactory.getReadRowsChannelSelector())
+            : Optional.empty();
 
     incomingStream =
         new StreamCombiningIterator(
-            client, requests, options.prebufferResponses, options.getMaxReadRowsRetries());
+            client,
+            requests,
+            options.prebufferResponses,
+            options.getMaxReadRowsRetries(),
+            channelSelector);
     return incomingStream;
   }
 
