@@ -1645,6 +1645,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
         readWithSnapshotTimeMillis(
             ImmutableMap.of("snapshotTimeMillis", String.valueOf(beforeChanges)));
     assertThat(rowsOf(snapshot)).containsExactly("1:a", "2:b").inOrder();
+    assertThat(snapshot.get("count").getAsLong()).isEqualTo(2);
 
     JsonObject filteredSnapshot =
         readWithSnapshotTimeMillis(
