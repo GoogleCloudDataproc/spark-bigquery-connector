@@ -1531,11 +1531,11 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
     // A public table with more rows than Integer.MAX_VALUE. COUNT(*) on it is answered from the
     // table metadata, so it doesn't scan the table.
     String largeTable = "bigquery-public-data.github_repos.files";
-    long largeTableRows =
-        bigQuery
-            .getTable(TableId.of("bigquery-public-data", "github_repos", "files"))
-            .getNumRows()
-            .longValue();
+    Table largeTableInfo =
+        bigQuery.getTable(TableId.of("bigquery-public-data", "github_repos", "files"));
+    assertThat(largeTableInfo).isNotNull();
+    assertThat(largeTableInfo.getNumRows()).isNotNull();
+    long largeTableRows = largeTableInfo.getNumRows().longValue();
     assertThat(largeTableRows).isGreaterThan((long) Integer.MAX_VALUE);
 
     JsonObject result =
