@@ -36,28 +36,39 @@ public class TestDataset extends ExternalResource {
   @Override
   protected void before() throws Throwable {
     IntegrationTestUtils.createDataset(testDataset);
-    IntegrationTestUtils.runQuery(
-        String.format(
-            TestConstants.ALL_TYPES_TABLE_QUERY_TEMPLATE,
-            testDataset,
-            TestConstants.ALL_TYPES_TABLE_NAME));
-    IntegrationTestUtils.createView(testDataset, TestConstants.ALL_TYPES_VIEW_NAME);
-    IntegrationTestUtils.createView(testDataset, TestConstants.SHAKESPEARE_VIEW);
-    IntegrationTestUtils.runQuery(
-        String.format(
-            TestConstants.STRUCT_COLUMN_ORDER_TEST_TABLE_QUERY_TEMPLATE,
-            testDataset,
-            TestConstants.STRUCT_COLUMN_ORDER_TEST_TABLE_NAME));
-    IntegrationTestUtils.runQuery(
-        String.format(
-            TestConstants.DIFF_IN_SCHEMA_SRC_TABLE,
-            testDataset,
-            TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_NAME));
-    IntegrationTestUtils.runQuery(
-        String.format(
-            TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_WITH_DESCRIPTION,
-            testDataset,
-            TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_NAME_WITH_DESCRIPTION));
+    try {
+      IntegrationTestUtils.runQuery(
+          String.format(
+              TestConstants.ALL_TYPES_TABLE_QUERY_TEMPLATE,
+              testDataset,
+              TestConstants.ALL_TYPES_TABLE_NAME));
+      IntegrationTestUtils.createView(testDataset, TestConstants.ALL_TYPES_VIEW_NAME);
+      IntegrationTestUtils.createView(testDataset, TestConstants.SHAKESPEARE_VIEW);
+      IntegrationTestUtils.runQuery(
+          String.format(
+              TestConstants.STRUCT_COLUMN_ORDER_TEST_TABLE_QUERY_TEMPLATE,
+              testDataset,
+              TestConstants.STRUCT_COLUMN_ORDER_TEST_TABLE_NAME));
+      IntegrationTestUtils.runQuery(
+          String.format(
+              TestConstants.DIFF_IN_SCHEMA_SRC_TABLE,
+              testDataset,
+              TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_NAME));
+      IntegrationTestUtils.runQuery(
+          String.format(
+              TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_WITH_DESCRIPTION,
+              testDataset,
+              TestConstants.DIFF_IN_SCHEMA_SRC_TABLE_NAME_WITH_DESCRIPTION));
+    } catch (Throwable t) {
+      // JUnit's ExternalResource skips after() when before() throws, so delete the partially
+      // populated dataset here rather than leaking it.
+      try {
+        IntegrationTestUtils.deleteDatasetAndTables(testDataset);
+      } catch (Exception cleanupException) {
+        t.addSuppressed(cleanupException);
+      }
+      throw t;
+    }
   }
 
   @Override
