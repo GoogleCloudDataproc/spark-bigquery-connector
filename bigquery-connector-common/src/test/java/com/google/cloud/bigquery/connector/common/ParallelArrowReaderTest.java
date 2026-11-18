@@ -162,6 +162,9 @@ public class ParallelArrowReaderTest {
 
   @Test
   public void testInterruptsOnClose() throws Exception {
+    // The second reader blocks for much longer than the asserted bound, so that only a missed
+    // interrupt fails the test, and not a JVM pause such as a full GC while the test runs.
+    Duration blockingTime = Duration.ofSeconds(10);
     try (VectorSchemaRoot root = VectorSchemaRoot.of()) {
       ArrowReader r1 = mock(ArrowReader.class);
       when(r1.loadNextBatch()).thenReturn(true);
@@ -172,7 +175,7 @@ public class ParallelArrowReaderTest {
           .thenAnswer(
               (InvocationOnMock invocation) -> {
                 latch.countDown();
-                MILLISECONDS.sleep(100);
+                MILLISECONDS.sleep(blockingTime.toMillis());
                 return true;
               });
       when(r2.getVectorSchemaRoot()).thenReturn(root);
@@ -210,7 +213,7 @@ public class ParallelArrowReaderTest {
       reader.close();
 
       assertThat(endTime.get()).isGreaterThan(start);
-      assertThat(Duration.between(start, endTime.get())).isLessThan(Duration.ofMillis(100));
+      assertThat(Duration.between(start, endTime.get())).isLessThan(blockingTime.dividedBy(2));
     }
   }
 }
