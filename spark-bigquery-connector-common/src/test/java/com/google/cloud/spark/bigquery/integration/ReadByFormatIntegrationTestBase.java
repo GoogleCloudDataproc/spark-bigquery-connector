@@ -939,6 +939,11 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     List<String> expectedRows = toJsonRows(expected);
     result.addProperty("numRows", actualRows.size());
     JsonArray mismatches = new JsonArray();
+    if (actualRows.size() != expectedRows.size()) {
+      mismatches.add(
+          String.format(
+              "row count: actual %d, expected %d", actualRows.size(), expectedRows.size()));
+    }
     for (int i = 0; i < Math.min(actualRows.size(), expectedRows.size()); i++) {
       if (!actualRows.get(i).equals(expectedRows.get(i)) && mismatches.size() < 5) {
         mismatches.add("actual:   " + actualRows.get(i) + "\nexpected: " + expectedRows.get(i));
