@@ -192,7 +192,6 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     String scenario = parameters.getOrDefault("scenario", "OPTION");
     String table = parameters.getOrDefault("table", TestConstants.SHAKESPEARE_TABLE);
-    String bqEncodedRequest = parameters.get("bqEncodedCreateReadSessionRequest");
     String backgroundThreads = parameters.get("bqBackgroundThreadsPerStream");
 
     // @SuppressWarnings("resource") is required because this helper uses newSession().
@@ -205,9 +204,6 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
             .newSession();
     org.apache.spark.sql.DataFrameReader reader = spark.read().format("bigquery");
 
-    if (bqEncodedRequest != null) {
-      reader = reader.option("bqEncodedCreateReadSessionRequest", bqEncodedRequest);
-    }
     if (backgroundThreads != null) {
       reader = reader.option("bqBackgroundThreadsPerStream", backgroundThreads);
     }
@@ -219,7 +215,9 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
       df = reader.option("table", table).load();
     }
 
-    if (bqEncodedRequest != null) {
+    if (backgroundThreads != null) {
+      // Stops a read early, which closes the background parsing threads before they finish the
+      // stream.
       df.head();
     }
 
@@ -1108,50 +1106,42 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
     testShakespeareLocal(result);
   }
 
-  @Test
-  @Ignore("DSv2 only")
-  public void testReadCompressed() throws Exception {
-    JsonObject result =
-        testRunner.run(
-            ReadIntegrationTestBase::readShakespeareApp,
-            "",
-            "",
-            ImmutableMap.of(
-                "scenario", "OPTION",
-                "table", TestConstants.SHAKESPEARE_TABLE,
-                "bqEncodedCreateReadSessionRequest", "EgZCBBoCEAI="));
-    testShakespeareLocal(result);
+  /**
+   * Whether the connector parses Arrow responses on background threads when {@code
+   * bqBackgroundThreadsPerStream} is set. The DataSource V1 connector ignores the option.
+   */
+  protected boolean supportsBackgroundParsingThreads() {
+    return true;
   }
 
   @Test
-  @Ignore("DSv2 only")
-  public void testReadCompressedWith1BackgroundThreads() throws Exception {
-    JsonObject result =
-        testRunner.run(
-            ReadIntegrationTestBase::readShakespeareApp,
-            "",
-            "",
-            ImmutableMap.of(
-                "scenario", "OPTION",
-                "table", TestConstants.SHAKESPEARE_TABLE,
-                "bqEncodedCreateReadSessionRequest", "EgZCBBoCEAI=",
-                "bqBackgroundThreadsPerStream", "1"));
-    testShakespeareLocal(result);
+  public void testReadWith1BackgroundParsingThread() throws Exception {
+    testReadWithBackgroundParsingThreads("1");
   }
 
   @Test
-  @Ignore("DSv2 only")
-  public void testReadCompressedWith4BackgroundThreads() throws Exception {
+  public void testReadWith4BackgroundParsingThreads() throws Exception {
+    testReadWithBackgroundParsingThreads("4");
+  }
+
+  // One thread and several threads take different code paths in
+  // ArrowColumnBatchPartitionReaderContext.
+  private void testReadWithBackgroundParsingThreads(String threads) throws Exception {
+    assumeTrue(
+        "background parsing threads are not supported by this connector",
+        supportsBackgroundParsingThreads());
     JsonObject result =
         testRunner.run(
             ReadIntegrationTestBase::readShakespeareApp,
             "",
             "",
             ImmutableMap.of(
-                "scenario", "OPTION",
-                "table", TestConstants.SHAKESPEARE_TABLE,
-                "bqEncodedCreateReadSessionRequest", "EgZCBBoCEAI=",
-                "bqBackgroundThreadsPerStream", "4"));
+                "scenario",
+                "OPTION",
+                "table",
+                TestConstants.SHAKESPEARE_TABLE,
+                "bqBackgroundThreadsPerStream",
+                threads));
     testShakespeareLocal(result);
   }
 
