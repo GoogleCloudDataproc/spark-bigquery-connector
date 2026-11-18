@@ -349,6 +349,8 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV
     assertThat(jobInfos.size()).isEqualTo(1);
     JsonObject jobInfo = jobInfos.get(0).getAsJsonObject();
     assertThat(jobInfo.get("type").getAsString()).isEqualTo("QUERY");
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    validateResult(result);
   }
 
   @Test
@@ -364,6 +366,8 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV
     assertThat(jobInfos.size()).isEqualTo(1);
     JsonObject jobInfo = jobInfos.get(0).getAsJsonObject();
     assertThat(jobInfo.get("type").getAsString()).isEqualTo("QUERY");
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    validateResult(result);
   }
 
   @Test
@@ -379,6 +383,8 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV
     assertThat(jobInfos.size()).isEqualTo(1);
     JsonObject jobInfo = jobInfos.get(0).getAsJsonObject();
     assertThat(jobInfo.get("type").getAsString()).isEqualTo("QUERY");
+    assertThat(result.get("status").getAsString()).isEqualTo("success");
+    validateResult(result);
   }
 
   @Test
@@ -484,6 +490,8 @@ class ReadFromQueryIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV
     JsonObject jobInfo = jobInfos.get(0).getAsJsonObject();
     assertThat(jobInfo.get("type").getAsString()).isEqualTo("QUERY");
     assertThat(jobInfo.get("query").getAsString()).contains("WHERE corpus = ?");
+    assertThat(result.get("count").getAsLong()).isEqualTo(12L);
+    assertThat(result.get("schemaMatches").getAsBoolean()).isTrue();
   }
 
   @Test
