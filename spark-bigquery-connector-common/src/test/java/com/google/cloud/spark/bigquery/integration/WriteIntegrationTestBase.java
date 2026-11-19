@@ -15,6 +15,7 @@
  */
 package com.google.cloud.spark.bigquery.integration;
 
+import static com.google.cloud.spark.bigquery.integration.DataTypeTestValues.SCALAR_TYPES;
 import static com.google.common.truth.Truth.assertThat;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -44,6 +45,7 @@ import com.google.cloud.spark.bigquery.SchemaConverters;
 import com.google.cloud.spark.bigquery.SchemaConvertersConfiguration;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig.WriteMethod;
+import com.google.cloud.spark.bigquery.integration.DataTypeTestValues.ScalarType;
 import com.google.cloud.spark.bigquery.integration.model.Data;
 import com.google.cloud.spark.bigquery.integration.model.Friend;
 import com.google.cloud.spark.bigquery.integration.model.Link;
@@ -74,6 +76,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import org.apache.spark.ml.PipelineModel;
 import org.apache.spark.ml.Transformer;
 import org.apache.spark.ml.feature.MinMaxScaler;
@@ -82,6 +85,7 @@ import org.apache.spark.ml.feature.VectorAssembler;
 import org.apache.spark.ml.linalg.SQLDataTypes;
 import org.apache.spark.ml.linalg.Vector;
 import org.apache.spark.package$;
+import org.apache.spark.sql.DataFrameWriter;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Encoders;
 import org.apache.spark.sql.Row;
@@ -2883,6 +2887,152 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  // =========================================================================
+  // SCENARIO: Write every scalar type, nested in structs, arrays and maps
+  // =========================================================================
+
+  private static final int DATA_TYPES_NUM_ROWS = 10;
+
+  @Test
+  public void testWriteDataTypes() throws Exception {
+    writeDataTypes(writeMethod == WriteMethod.INDIRECT ? Optional.of("avro") : Optional.empty());
+  }
+
+  @Test
+  public void testWriteDataTypesWithParquet() throws Exception {
+    assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
+    writeDataTypes(Optional.of("parquet"));
+  }
+
+  // Writes values of every scalar type, nested in a struct, in arrays and in maps, to a table
+  // created with DDL, then compares TO_JSON_STRING of each written row with the same row computed
+  // in BigQuery SQL, so the check doesn't depend on the connector's read path.
+  private void writeDataTypes(Optional<String> intermediateFormat) throws Exception {
+    // The test data uses TIMESTAMP_NTZ, which Spark supports from 3.4.
+    assumeThat(timeStampNTZType.isPresent(), is(true));
+    // Parquet can't hold JSON columns or maps.
+    boolean writesJsonAndMaps = !intermediateFormat.equals(Optional.of("parquet"));
+    // TIME columns are written from strings, which the direct write method supports for top-level
+    // columns only (see testWriteStringToTimeField_*), so they're left out.
+    List<ScalarType> types =
+        SCALAR_TYPES.stream()
+            .filter(type -> !type.name.equals("time"))
+            .collect(Collectors.toList());
+    // JSON values need the column metadata that marks a string as JSON, which nested values can't
+    // carry.
+    List<ScalarType> nestedTypes =
+        types.stream().filter(type -> !type.name.equals("json")).collect(Collectors.toList());
+
+    List<String> columns = new ArrayList<>();
+    List<String> bigQueryValues = new ArrayList<>();
+    List<String> sparkValues = new ArrayList<>();
+    columns.add("id INT64");
+    bigQueryValues.add("i AS id");
+    sparkValues.add("id");
+    // Every third row has NULL scalars, a NULL struct (on a different row) and empty arrays and
+    // maps.
+    for (ScalarType type : types) {
+      if (type.name.equals("json") && !writesJsonAndMaps) {
+        continue;
+      }
+      columns.add(String.format("scalar_%s %s", type.name, type.bigQueryType));
+      bigQueryValues.add(
+          String.format(
+              "IF(MOD(i, 3) = 0, NULL, %s) AS scalar_%s", type.bigQueryValue("i"), type.name));
+      sparkValues.add(
+          String.format(
+              "IF(id %% 3 = 0, NULL, %s) AS scalar_%s", type.sparkValue("id"), type.name));
+    }
+    columns.add(
+        nestedTypes.stream()
+            .map(type -> String.format("f_%s %s", type.name, type.bigQueryType))
+            .collect(Collectors.joining(", ", "struct_all STRUCT<", ">")));
+    bigQueryValues.add(
+        nestedTypes.stream()
+            .map(type -> String.format("%s AS f_%s", type.bigQueryValue("i"), type.name))
+            .collect(
+                Collectors.joining(", ", "IF(MOD(i, 3) = 1, NULL, STRUCT(", ")) AS struct_all")));
+    sparkValues.add(
+        nestedTypes.stream()
+            .map(type -> String.format("'f_%s', %s", type.name, type.sparkValue("id")))
+            .collect(
+                Collectors.joining(
+                    ", ", "IF(id % 3 = 1, NULL, named_struct(", ")) AS struct_all")));
+    for (ScalarType type : nestedTypes) {
+      // ARRAY<INT64> and maps with INT64 values are written by other tests.
+      if (type.name.equals("int64")) {
+        continue;
+      }
+      columns.add(String.format("array_%s ARRAY<%s>", type.name, type.bigQueryType));
+      bigQueryValues.add(
+          String.format(
+              "IF(MOD(i, 3) = 0, [], [%s, %s]) AS array_%s",
+              type.bigQueryValue("i"), type.bigQueryValue("i + 1"), type.name));
+      sparkValues.add(
+          String.format(
+              "filter(array(%s, %s), e -> id %% 3 != 0) AS array_%s",
+              type.sparkValue("id"), type.sparkValue("id + 1"), type.name));
+      // Maps with decimal values can't be converted to a BigQuery schema.
+      if (!writesJsonAndMaps || type.name.equals("numeric") || type.name.equals("bignumeric")) {
+        continue;
+      }
+      columns.add(
+          String.format(
+              "map_%s ARRAY<STRUCT<key STRING NOT NULL, value %s>>", type.name, type.bigQueryType));
+      bigQueryValues.add(
+          String.format(
+              "IF(MOD(i, 3) = 0, [], [STRUCT('a' AS key, %s AS value), STRUCT('b', %s)]) AS map_%s",
+              type.bigQueryValue("i"), type.bigQueryValue("i + 1"), type.name));
+      sparkValues.add(
+          String.format(
+              "map_filter(map('a', %s, 'b', %s), (k, v) -> id %% 3 != 0) AS map_%s",
+              type.sparkValue("id"), type.sparkValue("id + 1"), type.name));
+    }
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "CREATE TABLE `%s.%s` (%s)", testDataset, testTable, String.join(", ", columns)));
+
+    Dataset<Row> df =
+        spark.range(DATA_TYPES_NUM_ROWS).selectExpr(sparkValues.toArray(new String[0]));
+    if (writesJsonAndMaps) {
+      df =
+          df.withColumn(
+              "scalar_json",
+              df.col("scalar_json").as("scalar_json", Metadata.fromJson("{\"sqlType\":\"JSON\"}")));
+    }
+    DataFrameWriter<Row> writer =
+        df.write()
+            .format("bigquery")
+            .mode(SaveMode.Append)
+            .option("dataset", testDataset.toString())
+            .option("table", testTable)
+            .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+            .option("writeMethod", writeMethod.toString());
+    if (intermediateFormat.isPresent()) {
+      writer = writer.option("intermediateFormat", intermediateFormat.get());
+    }
+    writer.save();
+
+    List<String> written =
+        jsonRows(
+            String.format(
+                "SELECT TO_JSON_STRING(t) FROM `%s.%s` t ORDER BY id", testDataset, testTable));
+    List<String> expected =
+        jsonRows(
+            String.format(
+                "SELECT TO_JSON_STRING(t) FROM (SELECT %s FROM UNNEST(GENERATE_ARRAY(0, %d)) AS i)"
+                    + " t ORDER BY id",
+                String.join(", ", bigQueryValues), DATA_TYPES_NUM_ROWS - 1));
+    assertThat(written).containsExactlyElementsIn(expected).inOrder();
+  }
+
+  private static List<String> jsonRows(String query) {
+    return StreamSupport.stream(
+            IntegrationTestUtils.runQuery(query).iterateAll().spliterator(), false)
+        .map(row -> row.get(0).getStringValue())
+        .collect(Collectors.toList());
   }
 
   protected String fullTableName() {
