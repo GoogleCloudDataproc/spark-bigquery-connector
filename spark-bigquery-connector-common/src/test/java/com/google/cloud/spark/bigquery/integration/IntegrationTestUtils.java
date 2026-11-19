@@ -18,7 +18,17 @@ package com.google.cloud.spark.bigquery.integration;
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
+import com.google.api.core.NanoClock;
+import com.google.api.gax.retrying.DirectRetryingExecutor;
+import com.google.api.gax.retrying.ExponentialRetryAlgorithm;
+import com.google.api.gax.retrying.ResultRetryAlgorithm;
+import com.google.api.gax.retrying.RetryAlgorithm;
+import com.google.api.gax.retrying.RetrySettings;
+import com.google.api.gax.retrying.RetryingFuture;
+import com.google.api.gax.retrying.TimedAttemptSettings;
 import com.google.cloud.bigquery.BigQuery;
+import com.google.cloud.bigquery.BigQueryError;
+import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.BigQueryOptions;
 import com.google.cloud.bigquery.DatasetId;
 import com.google.cloud.bigquery.DatasetInfo;
@@ -40,9 +50,14 @@ import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableSet;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.Metadata;
@@ -58,6 +73,105 @@ public class IntegrationTestUtils {
 
   private static Cache<String, TableInfo> destinationTableCache =
       CacheBuilder.newBuilder().expireAfterWrite(15, TimeUnit.MINUTES).maximumSize(1000).build();
+
+  private static final ImmutableSet<String> TRANSIENT_BIGQUERY_REASONS =
+      ImmutableSet.of("backendError", "internalError", "rateLimitExceeded");
+
+  private static final RetrySettings BIGQUERY_RETRY_SETTINGS =
+      RetrySettings.newBuilder()
+          .setMaxAttempts(5)
+          .setInitialRetryDelayDuration(Duration.ofSeconds(1))
+          .setRetryDelayMultiplier(2.0)
+          .setMaxRetryDelayDuration(Duration.ofSeconds(16))
+          .setTotalTimeoutDuration(Duration.ofMinutes(2))
+          .build();
+
+  // google-cloud-bigquery invokes HttpBigQueryRpc.*SkipExceptionTranslation inside its retry loop,
+  // which throws raw GoogleJsonResponseException (not BaseServiceException) so the default
+  // exception handler does not retry HTTP 5xx responses such as 503 backendError. Query jobs can
+  // also finish with transient error reasons (code 0, isRetryable() == false). Wrapping test
+  // fixture operations here retries both cases with bounded exponential backoff.
+  static boolean isTransientBigQueryError(Throwable t) {
+    if (!(t instanceof BigQueryException)) {
+      return false;
+    }
+    BigQueryException bqException = (BigQueryException) t;
+    if (bqException.isRetryable() || bqException.getCode() == 429) {
+      return true;
+    }
+    if (bqException.getReason() != null
+        && TRANSIENT_BIGQUERY_REASONS.contains(bqException.getReason())) {
+      return true;
+    }
+    BigQueryError error = bqException.getError();
+    return error != null
+        && error.getReason() != null
+        && TRANSIENT_BIGQUERY_REASONS.contains(error.getReason());
+  }
+
+  static <T> T runWithRetries(Callable<T> action, String operationName) {
+    return runWithRetries(action, BIGQUERY_RETRY_SETTINGS, operationName);
+  }
+
+  static <T> T runWithRetries(
+      Callable<T> action, RetrySettings retrySettings, String operationName) {
+    AtomicInteger attempt = new AtomicInteger(0);
+    ResultRetryAlgorithm<T> resultRetryAlgorithm =
+        new ResultRetryAlgorithm<T>() {
+          @Override
+          public TimedAttemptSettings createNextAttempt(
+              Throwable prevThrowable, T prevResponse, TimedAttemptSettings prevSettings) {
+            return null;
+          }
+
+          @Override
+          public boolean shouldRetry(Throwable prevThrowable, T prevResponse) {
+            return isTransientBigQueryError(prevThrowable);
+          }
+        };
+    DirectRetryingExecutor<T> executor =
+        new DirectRetryingExecutor<>(
+            new RetryAlgorithm<>(
+                resultRetryAlgorithm,
+                new ExponentialRetryAlgorithm(retrySettings, NanoClock.getDefaultClock())));
+    RetryingFuture<T> future =
+        executor.createFuture(
+            () -> {
+              int currentAttempt = attempt.incrementAndGet();
+              try {
+                return action.call();
+              } catch (Exception e) {
+                if (isTransientBigQueryError(e)
+                    && currentAttempt < retrySettings.getMaxAttempts()) {
+                  logger.warn(
+                      "Transient BigQuery error during {} (attempt {}/{}), retrying: {}",
+                      operationName,
+                      currentAttempt,
+                      retrySettings.getMaxAttempts(),
+                      e.getMessage());
+                }
+                throw e;
+              }
+            });
+    try {
+      return executor.submit(future).get();
+    } catch (InterruptedException e) {
+      Thread.currentThread().interrupt();
+      throw new RuntimeException("Interrupted during " + operationName, e);
+    } catch (ExecutionException e) {
+      Throwable cause = e.getCause();
+      if (cause instanceof InterruptedException) {
+        Thread.currentThread().interrupt();
+      }
+      if (cause instanceof RuntimeException) {
+        throw (RuntimeException) cause;
+      }
+      if (cause instanceof Error) {
+        throw (Error) cause;
+      }
+      throw new RuntimeException("Failed during " + operationName, cause);
+    }
+  }
 
   public static BigQuery getBigquery() {
     return getBigquery(Optional.empty());
@@ -90,38 +204,41 @@ public class IntegrationTestUtils {
     BigQuery bq = getBigquery();
     DatasetId datasetId = DatasetId.of(dataset);
     logger.warn("Creating test dataset: {}", datasetId);
-    bq.create(DatasetInfo.of(datasetId));
+    runWithRetries(() -> bq.create(DatasetInfo.of(datasetId)), "createDataset(" + dataset + ")");
   }
 
   public static TableResult runQuery(String query) {
-    return getBigQueryClient().query(query);
+    BigQueryClient client = getBigQueryClient();
+    return runWithRetries(() -> client.query(query), "runQuery");
   }
 
   public static void runQuery(String query, Object... args) {
-    getBigQueryClient().query(String.format(query, args));
+    runQuery(String.format(query, args));
   }
 
   public static void runQueryInLocation(String bigQueryLocation, String query, Object... args) {
-    try {
-      getBigquery(Optional.ofNullable(bigQueryLocation))
-          .create(
-              JobInfo.newBuilder(
-                      QueryJobConfiguration.newBuilder(String.format(query, args)).build())
-                  .setJobId(
-                      JobId.newBuilder()
-                          .setJob(UUID.randomUUID().toString()) // Generates a unique ID for the job
-                          .setLocation(bigQueryLocation)
-                          .build())
-                  .build())
-          .waitFor();
-    } catch (InterruptedException e) {
-      Thread.currentThread().interrupt();
-      throw new RuntimeException(e);
-    }
+    BigQuery bq = getBigquery(Optional.ofNullable(bigQueryLocation));
+    String formattedQuery = String.format(query, args);
+    runWithRetries(
+        () ->
+            bq.create(
+                    JobInfo.newBuilder(QueryJobConfiguration.newBuilder(formattedQuery).build())
+                        .setJobId(
+                            JobId.newBuilder()
+                                .setJob(
+                                    UUID.randomUUID()
+                                        .toString()) // Generates a unique ID for the job
+                                .setLocation(bigQueryLocation)
+                                .build())
+                        .build())
+                .waitFor(),
+        "runQueryInLocation(" + bigQueryLocation + ")");
   }
 
   public static Iterable<Table> listTables(DatasetId datasetId, TableDefinition.Type... types) {
-    return getBigQueryClient().listTables(datasetId, types);
+    BigQueryClient client = getBigQueryClient();
+    return runWithRetries(
+        () -> client.listTables(datasetId, types), "listTables(" + datasetId.getDataset() + ")");
   }
 
   public static void createBigLakeTable(
@@ -143,13 +260,15 @@ public class IntegrationTestUtils {
                     .setConnectionId(TestConstants.BIGLAKE_CONNECTION_ID)
                     .build())
             .build();
-    bq.create(tableInfo);
+    runWithRetries(() -> bq.create(tableInfo), "createBigLakeTable(" + dataset + "." + table + ")");
   }
 
   public static void deleteDatasetAndTables(String dataset) {
     BigQuery bq = getBigquery();
     logger.warn("Deleting test dataset '{}' and its contents", dataset);
-    bq.delete(DatasetId.of(dataset), BigQuery.DatasetDeleteOption.deleteContents());
+    runWithRetries(
+        () -> bq.delete(DatasetId.of(dataset), BigQuery.DatasetDeleteOption.deleteContents()),
+        "deleteDatasetAndTables(" + dataset + ")");
   }
 
   static Metadata metadata(String key, String value) {
@@ -166,12 +285,13 @@ public class IntegrationTestUtils {
   }
 
   static void createView(String dataset, String view) {
-
     BigQuery bq = getBigquery();
     String query = "SELECT * FROM `bigquery-public-data.samples.shakespeare`";
     TableId tableId = TableId.of(dataset, view);
     ViewDefinition viewDefinition = ViewDefinition.newBuilder(query).setUseLegacySql(false).build();
-    bq.create(TableInfo.of(tableId, viewDefinition));
+    runWithRetries(
+        () -> bq.create(TableInfo.of(tableId, viewDefinition)),
+        "createView(" + dataset + "." + view + ")");
   }
 
   static void createView(String dataset, String table, String view) {
@@ -179,7 +299,9 @@ public class IntegrationTestUtils {
     String query = String.format("SELECT * FROM `%s.%s`", dataset, table);
     TableId tableId = TableId.of(dataset, view);
     ViewDefinition viewDefinition = ViewDefinition.newBuilder(query).setUseLegacySql(false).build();
-    bq.create(TableInfo.of(tableId, viewDefinition));
+    runWithRetries(
+        () -> bq.create(TableInfo.of(tableId, viewDefinition)),
+        "createView(" + dataset + "." + view + ")");
   }
 
   public static void compareRows(Row row, Row expected) {
