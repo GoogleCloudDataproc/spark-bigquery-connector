@@ -2910,15 +2910,15 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   // created with DDL, then compares TO_JSON_STRING of each written row with the same row computed
   // in BigQuery SQL, so the check doesn't depend on the connector's read path.
   private void writeDataTypes(Optional<String> intermediateFormat) throws Exception {
-    // The test data uses TIMESTAMP_NTZ, which Spark supports from 3.4.
-    assumeThat(timeStampNTZType.isPresent(), is(true));
     // Parquet can't hold JSON columns or maps.
     boolean writesJsonAndMaps = !intermediateFormat.equals(Optional.of("parquet"));
     // TIME columns are written from strings, which the direct write method supports for top-level
-    // columns only (see testWriteStringToTimeField_*), so they're left out.
+    // columns only (see testWriteStringToTimeField_*), so they're left out. DATETIME columns use
+    // TIMESTAMP_NTZ, which Spark supports from 3.4.
     List<ScalarType> types =
         SCALAR_TYPES.stream()
             .filter(type -> !type.name.equals("time"))
+            .filter(type -> timeStampNTZType.isPresent() || !type.name.equals("datetime"))
             .collect(Collectors.toList());
     // JSON values need the column metadata that marks a string as JSON, which nested values can't
     // carry.

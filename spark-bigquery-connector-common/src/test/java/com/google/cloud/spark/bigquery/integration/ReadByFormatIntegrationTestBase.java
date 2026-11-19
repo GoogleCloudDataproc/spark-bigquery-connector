@@ -966,8 +966,11 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
 
   @Test
   public void testReadDataTypes() throws Exception {
-    // The expected values use TIMESTAMP_NTZ, which Spark supports from 3.4.
-    assumeThat(timeStampNTZType.isPresent(), is(true));
+    // DATETIME columns use TIMESTAMP_NTZ, which Spark supports from 3.4.
+    List<ScalarType> types =
+        SCALAR_TYPES.stream()
+            .filter(type -> timeStampNTZType.isPresent() || !type.name.equals("datetime"))
+            .collect(Collectors.toList());
     List<String> columns = new ArrayList<>();
     List<String> bigQueryValues = new ArrayList<>();
     List<String> expectedColumns = new ArrayList<>();
@@ -976,7 +979,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
     expectedColumns.add("id");
     // Every third row has NULL scalars, a NULL struct (on a different row) and empty arrays and
     // maps, since BigQuery stores a NULL array as an empty one.
-    for (ScalarType type : SCALAR_TYPES) {
+    for (ScalarType type : types) {
       columns.add(String.format("scalar_%s %s", type.name, type.bigQueryType));
       bigQueryValues.add(String.format("IF(MOD(i, 3) = 0, NULL, %s)", type.bigQueryValue("i")));
       expectedColumns.add(
@@ -984,21 +987,21 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
               "IF(id %% 3 = 0, NULL, %s) AS scalar_%s", type.sparkValue("id"), type.name));
     }
     columns.add(
-        SCALAR_TYPES.stream()
+        types.stream()
             .map(type -> String.format("f_%s %s", type.name, type.bigQueryType))
             .collect(Collectors.joining(", ", "struct_all STRUCT<", ">")));
     bigQueryValues.add(
-        SCALAR_TYPES.stream()
+        types.stream()
             .map(type -> String.format("%s AS f_%s", type.bigQueryValue("i"), type.name))
             .collect(Collectors.joining(", ", "IF(MOD(i, 3) = 1, NULL, STRUCT(", "))")));
     expectedColumns.add(
-        SCALAR_TYPES.stream()
+        types.stream()
             .map(type -> String.format("'f_%s', %s", type.name, type.sparkValue("id")))
             .collect(
                 Collectors.joining(
                     ", ", "IF(id % 3 = 1, NULL, named_struct(", ")) AS struct_all")));
     // ARRAY<INT64> and maps with INT64 values are read by other tests.
-    for (ScalarType type : SCALAR_TYPES) {
+    for (ScalarType type : types) {
       if (type.name.equals("int64")) {
         continue;
       }
