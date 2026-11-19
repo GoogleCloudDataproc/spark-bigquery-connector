@@ -71,7 +71,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.TimeZone;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.spark.ml.PipelineModel;
@@ -107,7 +106,6 @@ import scala.Some;
 abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
 
   private static final TimeZone DEFAULT_TZ = TimeZone.getDefault();
-  protected static AtomicInteger id = new AtomicInteger(0);
   protected final SparkBigQueryConfig.WriteMethod writeMethod;
   protected Class<? extends Exception> expectedExceptionOnExistingTable;
   protected BigQuery bq;
@@ -1027,9 +1025,11 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
   }
 
   protected Dataset<Row> overwriteSinglePartition(StructField dateField) {
+    // The direct write method creates its temporary table from the destination table ID, which
+    // datePartition turns into a partition decorator that table IDs can't contain.
+    assumeThat(writeMethod, equalTo(WriteMethod.INDIRECT));
     // create partitioned table
-    String tableName = fullTableNamePartitioned() + "_" + id.getAndIncrement();
-    TableId tableId = TableId.of(testDataset.toString(), tableName);
+    TableId tableId = TableId.of(testDataset.toString(), testTable);
     Schema schema =
         Schema.of(
             Field.of("the_date", LegacySQLTypeName.DATE),
@@ -1068,29 +1068,30 @@ abstract class WriteIntegrationTestBase extends SparkBigQueryIntegrationTestBase
         .write()
         .format("bigquery")
         .option("temporaryGcsBucket", TestConstants.TEMPORARY_GCS_BUCKET)
+        .option("writeMethod", writeMethod.toString())
         .option("datePartition", "20200701")
         .mode("overwrite")
         .save(fullTableName());
 
     Dataset<Row> resultDF = spark.read().format("bigquery").load(fullTableName());
-    List<Row> result = resultDF.collectAsList();
+    List<Row> result = resultDF.sort("the_date").collectAsList();
 
-    assertThat(result).hasSize(2);
-    assertThat(result.stream().filter(row -> row.getString(1).equals("bar")).count()).isEqualTo(1);
-    assertThat(result.stream().filter(row -> row.getString(1).equals("baz")).count()).isEqualTo(1);
+    assertThat(result)
+        .containsExactly(
+            RowFactory.create(Date.valueOf("2020-07-01"), "baz"),
+            RowFactory.create(Date.valueOf("2020-07-02"), "bar"))
+        .inOrder();
 
     return resultDF;
   }
 
-  // TODO: figure out why the table creation fails
-  // @Test
+  @Test
   public void testOverwriteSinglePartition() {
     overwriteSinglePartition(
         new StructField("the_date", DataTypes.DateType, true, Metadata.empty()));
   }
 
-  // TODO: figure out why the table creation fails
-  // @Test
+  @Test
   public void testOverwriteSinglePartitionWithComment() {
     String comment = "the partition field";
     Dataset<Row> resultDF =
