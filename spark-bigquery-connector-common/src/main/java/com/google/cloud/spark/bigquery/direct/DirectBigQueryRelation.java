@@ -148,11 +148,11 @@ public class DirectBigQueryRelation extends BigQueryRelation
                   "Access denied while running the query job used by the optimized empty"
                       + " projection (e.g. count()) on table %s. This optimization requires the"
                       + " bigquery.jobs.create permission in project %s. Either grant this"
-                      + " permission, set the useMetadataStaleRowCountIfPossible option to true to use"
-                      + " the possibly stale row count from the table metadata (only applies to"
-                      + " native tables read without filters), or set the optimizedEmptyProjection"
-                      + " option to false to read the rows through the BigQuery Storage Read API"
-                      + " instead.",
+                      + " permission, set the useMetadataStaleRowCountIfPossible option to true"
+                      + " to use the possibly stale row count from the table metadata (only"
+                      + " applies to native tables read without filters or snapshotTimeMillis),"
+                      + " or set the optimizedEmptyProjection option to false to read the rows"
+                      + " through the BigQuery Storage Read API instead.",
                   getTableNameForLogging(), bigQueryClient.getProjectId()),
               e);
         }

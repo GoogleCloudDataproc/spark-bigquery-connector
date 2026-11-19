@@ -27,8 +27,8 @@
   `bigquery.jobs.create` permission. When that permission is missing, the connector
   now fails with an error explaining the requirement and the available alternatives.
   Added the `useMetadataStaleRowCountIfPossible` option (default `false`) which, for
-  unfiltered reads of native tables, uses the table metadata row count instead of
-  running a query job.
+  reads of native tables without filters or `snapshotTimeMillis`, uses the table
+  metadata row count instead of running a query job.
 
 ## 0.46.1 - 2026-11-04
 
