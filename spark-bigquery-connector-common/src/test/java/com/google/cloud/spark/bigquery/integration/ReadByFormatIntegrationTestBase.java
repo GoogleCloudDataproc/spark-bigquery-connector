@@ -604,6 +604,8 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
               LocalDateTime.of(1969, 12, 31, 23, 59, 59, 123_456_000),
               LocalDateTime.of(1970, 1, 1, 0, 0, 0),
               LocalDateTime.of(2023, 9, 18, 14, 30, 15, 234 * 1_000_000),
+              // Largest fraction DATETIME supports (microsecond precision)
+              LocalDateTime.of(2023, 9, 18, 14, 30, 15, 999_999_000),
               LocalDateTime.of(2024, 1, 2, 3, 4, 5, 123_456_000),
               LocalDateTime.of(2026, 3, 19, 5, 0, 0));
       bigQuery.create(
