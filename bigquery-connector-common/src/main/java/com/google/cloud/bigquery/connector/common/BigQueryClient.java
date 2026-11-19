@@ -672,45 +672,72 @@ public class BigQueryClient {
     }
   }
 
-  public long calculateTableSize(TableId tableId, Optional<String> filter) {
-    return calculateTableSize(getTable(tableId), filter);
+  /**
+   * Returns the number of rows in a table, view or materialized view.
+   *
+   * @param tableId the table to count the rows of
+   * @param filter an optional SQL predicate that the counted rows match
+   * @param snapshotTimeMillis if present, counts the rows of a table as they were at this time
+   *     (time travel). It's ignored for views and materialized views.
+   * @return the number of rows
+   */
+  public long calculateTableSize(
+      TableId tableId, Optional<String> filter, OptionalLong snapshotTimeMillis) {
+    return calculateTableSize(getTable(tableId), filter, snapshotTimeMillis);
   }
 
-  public long calculateTableSize(TableInfo tableInfo, Optional<String> filter) {
+  /**
+   * Returns the number of rows in a table, view or materialized view.
+   *
+   * @param tableInfo the table to count the rows of
+   * @param filter an optional SQL predicate that the counted rows match
+   * @param snapshotTimeMillis if present, counts the rows of a table as they were at this time
+   *     (time travel). It's ignored for views and materialized views.
+   * @return the number of rows
+   */
+  public long calculateTableSize(
+      TableInfo tableInfo, Optional<String> filter, OptionalLong snapshotTimeMillis) {
+    return getNumberOfRows(createTableSizeSql(tableInfo, filter, snapshotTimeMillis));
+  }
+
+  // VisibleForTesting
+  static String createTableSizeSql(
+      TableInfo tableInfo, Optional<String> filter, OptionalLong snapshotTimeMillis) {
     TableDefinition.Type type = tableInfo.getDefinition().getType();
-    if ((type == TableDefinition.Type.EXTERNAL || type == TableDefinition.Type.TABLE)
-        && !filter.isPresent()) {
-      if (isBigQueryNativeTable(tableInfo)
-          && tableInfo.getRequirePartitionFilter() != null
-          && tableInfo.getRequirePartitionFilter()) {
-        List<String> partitioningFields = getPartitionFields(tableInfo);
-        if (partitioningFields.isEmpty()) {
-          throw new IllegalStateException(
-              "Could not find partitioning columns for table requiring partition filter: "
-                  + tableInfo.getTableId());
-        }
-        String table = fullTableName(tableInfo.getTableId());
-        return getNumberOfRows(
-            String.format(
-                "SELECT COUNT(*) from `%s` WHERE %s IS NOT NULL",
-                table, partitioningFields.get(0)));
-      }
-      String table = fullTableName(tableInfo.getTableId());
-      return getNumberOfRows(String.format("SELECT COUNT(*) from `%s`", table));
-    } else if (type == TableDefinition.Type.VIEW
-        || type == TableDefinition.Type.MATERIALIZED_VIEW
-        || ((type == TableDefinition.Type.TABLE || type == TableDefinition.Type.EXTERNAL)
-            && filter.isPresent())) {
-      // run a query
-      String table = fullTableName(tableInfo.getTableId());
+    String table = fullTableName(tableInfo.getTableId());
+    if (type == TableDefinition.Type.VIEW || type == TableDefinition.Type.MATERIALIZED_VIEW) {
+      // Like the read session, which doesn't apply the snapshot time to views.
       String whereClause = filter.map(f -> "WHERE " + f).orElse("");
-      return getNumberOfRows(String.format("SELECT COUNT(*) from `%s` %s", table, whereClause));
-    } else {
-      throw new IllegalArgumentException(
-          String.format(
-              "Unsupported table type %s for table %s",
-              type, fullTableName(tableInfo.getTableId())));
+      return String.format("SELECT COUNT(*) from `%s` %s", table, whereClause);
     }
+    if (type != TableDefinition.Type.EXTERNAL && type != TableDefinition.Type.TABLE) {
+      throw new IllegalArgumentException(
+          String.format("Unsupported table type %s for table %s", type, table));
+    }
+    // FOR SYSTEM_TIME AS OF belongs to the table reference, so it goes before the WHERE clause.
+    String tableReference =
+        snapshotTimeMillis.isPresent()
+            ? String.format(
+                "`%s` FOR SYSTEM_TIME AS OF TIMESTAMP_MILLIS(%d)",
+                table, snapshotTimeMillis.getAsLong())
+            : String.format("`%s`", table);
+    if (filter.isPresent()) {
+      return String.format("SELECT COUNT(*) from %s WHERE %s", tableReference, filter.get());
+    }
+    if (isBigQueryNativeTable(tableInfo)
+        && tableInfo.getRequirePartitionFilter() != null
+        && tableInfo.getRequirePartitionFilter()) {
+      List<String> partitioningFields = getPartitionFields(tableInfo);
+      if (partitioningFields.isEmpty()) {
+        throw new IllegalStateException(
+            "Could not find partitioning columns for table requiring partition filter: "
+                + tableInfo.getTableId());
+      }
+      return String.format(
+          "SELECT COUNT(*) from %s WHERE %s IS NOT NULL",
+          tableReference, partitioningFields.get(0));
+    }
+    return String.format("SELECT COUNT(*) from %s", tableReference);
   }
 
   private long getNumberOfRows(String sql) {

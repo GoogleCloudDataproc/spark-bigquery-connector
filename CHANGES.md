@@ -19,6 +19,9 @@
   and empty tables.
 * PR #1564: Reads now keep requesting rows from a ReadRows stream that is retried after a
   retryable error, including when the error happens before the requested responses arrive.
+* PR #1567: `count()` and SQL `COUNT(*)` on a read with `snapshotTimeMillis` now count the table's
+  rows as of the snapshot time, like the rows the read returns. Based on PR #1307, thanks
+  @tom-s-powell !
 
 ## 0.46.1 - 2026-11-04
 

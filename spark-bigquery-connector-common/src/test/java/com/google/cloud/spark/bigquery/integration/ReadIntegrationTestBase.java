@@ -715,6 +715,40 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
   }
 
   @SuppressWarnings("resource")
+  protected static JsonObject readWithSnapshotTimeMillisApp(
+      String testDataset, String testTable, Map<String, String> parameters) throws Exception {
+    // @SuppressWarnings("resource") is required because this helper uses newSession().
+    // In-process Spark tests are designed to be isolated; closing a newSession()
+    // will break session context for subsequent tests. Do not close this session.
+    @SuppressWarnings("resource")
+    SparkSession spark =
+        IntegrationTestUtils.createSparkSessionBuilder("readWithSnapshotTimeMillisApp")
+            .getOrCreate()
+            .newSession();
+    org.apache.spark.sql.DataFrameReader reader =
+        spark.read().format("bigquery").option("dataset", testDataset).option("table", testTable);
+    String snapshotTimeMillis = parameters.get("snapshotTimeMillis");
+    if (snapshotTimeMillis != null) {
+      reader = reader.option("snapshotTimeMillis", snapshotTimeMillis);
+    }
+    Dataset<Row> df = reader.load();
+    String filter = parameters.get("filter");
+    if (filter != null) {
+      df = df.where(filter);
+    }
+
+    JsonArray rows = new JsonArray();
+    for (Row row : df.sort("id").collectAsList()) {
+      rows.add(row.getLong(0) + ":" + row.getString(1));
+    }
+    JsonObject result = new JsonObject();
+    result.addProperty("status", "success");
+    result.add("rows", rows);
+    result.addProperty("count", df.count());
+    return result;
+  }
+
+  @SuppressWarnings("resource")
   protected static JsonObject readTableWithSpacesApp(
       String testDataset, String testTable, Map<String, String> parameters) throws Exception {
     String tableId = parameters.get("tableId");
@@ -1583,6 +1617,64 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBaseV2 
     assertThat(result.get("filtered").getAsLong()).isEqualTo(5318);
     assertThat(result.get("filteredToZero").getAsLong()).isEqualTo(0);
     assertThat(result.get("largeTable").getAsLong()).isEqualTo(largeTableRows);
+  }
+
+  @Test
+  public void testReadWithSnapshotTimeMillis() throws Exception {
+    IntegrationTestUtils.runQuery(
+        String.format(
+            "CREATE TABLE %s.%s (id INT64, name STRING) AS SELECT * FROM UNNEST([(1, 'a'), (2, 'b')])",
+            testDataset, testTable));
+    Table createdTable = bigQuery.getTable(testDataset.toString(), testTable);
+    // BigQuery server times, so the test doesn't depend on the local clock.
+    long creationTime = createdTable.getCreationTime();
+    long beforeChanges = createdTable.getLastModifiedTime();
+    // Time travel has millisecond precision, so make sure the changes below commit after
+    // beforeChanges.
+    Thread.sleep(1000);
+    IntegrationTestUtils.runQuery(
+        String.format("INSERT INTO %s.%s VALUES (3, 'c')", testDataset, testTable));
+    IntegrationTestUtils.runQuery(
+        String.format("UPDATE %s.%s SET name = 'z' WHERE id = 1", testDataset, testTable));
+
+    JsonObject current = readWithSnapshotTimeMillis(ImmutableMap.of());
+    assertThat(rowsOf(current)).containsExactly("1:z", "2:b", "3:c").inOrder();
+    assertThat(current.get("count").getAsLong()).isEqualTo(3);
+
+    JsonObject snapshot =
+        readWithSnapshotTimeMillis(
+            ImmutableMap.of("snapshotTimeMillis", String.valueOf(beforeChanges)));
+    assertThat(rowsOf(snapshot)).containsExactly("1:a", "2:b").inOrder();
+    assertThat(snapshot.get("count").getAsLong()).isEqualTo(2);
+
+    JsonObject filteredSnapshot =
+        readWithSnapshotTimeMillis(
+            ImmutableMap.of(
+                "snapshotTimeMillis", String.valueOf(beforeChanges), "filter", "name != 'b'"));
+    assertThat(rowsOf(filteredSnapshot)).containsExactly("1:a");
+    assertThat(filteredSnapshot.get("count").getAsLong()).isEqualTo(1);
+
+    Exception beforeCreation =
+        assertThrows(
+            Exception.class,
+            () ->
+                readWithSnapshotTimeMillis(
+                    ImmutableMap.of("snapshotTimeMillis", String.valueOf(creationTime - 60_000))));
+    assertThat(beforeCreation).hasMessageThat().contains("Invalid time travel timestamp");
+  }
+
+  private JsonObject readWithSnapshotTimeMillis(Map<String, String> parameters) throws Exception {
+    return testRunner.run(
+        ReadIntegrationTestBase::readWithSnapshotTimeMillisApp,
+        testDataset.toString(),
+        testTable,
+        parameters);
+  }
+
+  private static List<String> rowsOf(JsonObject result) {
+    return StreamSupport.stream(result.getAsJsonArray("rows").spliterator(), false)
+        .map(JsonElement::getAsString)
+        .collect(Collectors.toList());
   }
 
   @Test

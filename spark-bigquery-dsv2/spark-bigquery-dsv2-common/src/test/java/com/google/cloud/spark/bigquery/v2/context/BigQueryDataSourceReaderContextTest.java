@@ -53,7 +53,7 @@ public class BigQueryDataSourceReaderContextTest {
   public void testEmptyProjectionPartitionsLargerThanIntMax() {
     long rowCount = 13_927_954_135L;
     BigQueryClient bigQueryClient = mock(BigQueryClient.class);
-    when(bigQueryClient.calculateTableSize(any(TableId.class), any())).thenReturn(rowCount);
+    when(bigQueryClient.calculateTableSize(any(TableId.class), any(), any())).thenReturn(rowCount);
     TableInfo tableInfo =
         TableInfo.of(
             TableId.of("project", "dataset", "table"),
