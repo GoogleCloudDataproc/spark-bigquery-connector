@@ -245,9 +245,8 @@ public class StreamCombiningIteratorChannelSelectionTest {
     StreamCombiningIterator iterator =
         newIterator(ImmutableList.of("flaky"), /* numRetries= */ 1, Optional.of(selector));
 
-    assertThat(iterator.hasNext()).isTrue();
-    service.awaitAttempts("flaky", 2);
-    iterator.next();
+    // The first attempt fails before sending any response, so the only response comes from the
+    // retried stream.
     assertThat(iterator.hasNext()).isTrue();
     iterator.next();
     assertThat(iterator.hasNext()).isFalse();
@@ -411,7 +410,8 @@ public class StreamCombiningIteratorChannelSelectionTest {
   /**
    * Fake Read API that records the channel each stream was read on. Streams named "long*" stay open
    * until the end of the test, streams named "failing" fail, streams named "flaky" fail once with a
-   * retryable error before succeeding, and other streams return one response.
+   * retryable error before sending any response and then return one response, and other streams
+   * return one response.
    */
   private static class FakeReadService extends BigQueryReadImplBase {
     final AtomicInteger nextShortStreamId = new AtomicInteger();
@@ -436,7 +436,6 @@ public class StreamCombiningIteratorChannelSelectionTest {
       } else if (name.equals("failing")) {
         responseObserver.onError(Status.INVALID_ARGUMENT.asRuntimeException());
       } else if (name.equals("flaky") && channels.size() == 1) {
-        responseObserver.onNext(ReadRowsResponse.newBuilder().setRowCount(1).build());
         responseObserver.onError(
             Status.INTERNAL
                 .withDescription("Connection closed with unknown cause")

@@ -17,6 +17,8 @@
   `rawInputRows` driver metrics for tables, table snapshots, and materialized `query` reads. Both
   metrics are omitted for views, materialized views, external tables, `snapshotTimeMillis` reads,
   and empty tables.
+* PR #1564: Reads now keep requesting rows from a ReadRows stream that is retried after a
+  retryable error, including when the error happens before the requested responses arrive.
 
 ## 0.46.1 - 2026-11-04
 
