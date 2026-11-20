@@ -1,6 +1,6 @@
 # Release Notes
 
-## Next
+## 0.46.2 - 2026-11-20
 
 * PR #1548: The `spark-4.0-bigquery`, `spark-4.1-bigquery` and `spark-4.2-bigquery` jars now
   include the relocated commons-io and commons-lang3 classes, which lets reads with an
