@@ -2,6 +2,9 @@
 
 ## Next
 
+* Reading a view with both `snapshotTimeMillis` and a filter no longer fails with a syntax
+  error: the `FOR SYSTEM_TIME AS OF` clause of the view materialization query now comes before
+  the `WHERE` clause.
 * PR #1548: The `spark-4.0-bigquery`, `spark-4.1-bigquery` and `spark-4.2-bigquery` jars now
   include the relocated commons-io and commons-lang3 classes, which lets reads with an
   `arrowCompressionCodec` run with these connectors.

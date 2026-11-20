@@ -21,12 +21,16 @@ import com.google.api.client.http.HttpTransport;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.cloud.NoCredentials;
 import com.google.cloud.bigquery.BigQueryOptions;
+import com.google.cloud.bigquery.QueryJobConfiguration.Priority;
 import com.google.cloud.bigquery.Schema;
 import com.google.cloud.bigquery.StandardTableDefinition;
 import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.ViewDefinition;
 import com.google.cloud.http.HttpTransportOptions;
+import com.google.common.cache.CacheBuilder;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import java.util.Optional;
 import java.util.OptionalLong;
 import org.junit.Test;
@@ -105,6 +109,62 @@ public class BigQueryClientTest {
     assertThat(
             BigQueryClient.createTableSizeSql(TABLE, Optional.of("x > 1"), OptionalLong.of(1234L)))
         .contains("`p.d.t` FOR SYSTEM_TIME AS OF TIMESTAMP_MILLIS(1234) WHERE x > 1");
+  }
+
+  private static BigQueryClient newClient() {
+    BigQueryOptions options =
+        BigQueryOptions.newBuilder()
+            .setProjectId("test-project")
+            .setCredentials(NoCredentials.getInstance())
+            .build();
+    return new BigQueryClient(
+        options.getService(),
+        Optional.empty(),
+        Optional.empty(),
+        CacheBuilder.newBuilder().build(),
+        ImmutableMap.of(),
+        Priority.INTERACTIVE,
+        Optional.empty(),
+        60);
+  }
+
+  @Test
+  public void testCreateSqlWithoutSnapshotTime() {
+    assertThat(
+            newClient()
+                .createSql(
+                    TableId.of("p", "d", "v"),
+                    ImmutableList.of("x"),
+                    new String[] {"x > 1"},
+                    OptionalLong.empty())
+                .trim())
+        .isEqualTo("SELECT `x` FROM `p.d.v` WHERE (x > 1)");
+  }
+
+  @Test
+  public void testCreateSqlWithSnapshotTime() {
+    assertThat(
+            newClient()
+                .createSql(
+                    TableId.of("p", "d", "v"),
+                    ImmutableList.of(),
+                    new String[0],
+                    OptionalLong.of(1234L)))
+        .contains("`p.d.v` FOR SYSTEM_TIME AS OF TIMESTAMP_MILLIS(1234)");
+  }
+
+  @Test
+  public void testCreateSqlWithSnapshotTimeAndFilter() {
+    // The clause belongs to the table reference, before the WHERE clause.
+    assertThat(
+            newClient()
+                .createSql(
+                    TableId.of("p", "d", "v"),
+                    ImmutableList.of("x"),
+                    new String[] {"x > 1"},
+                    OptionalLong.of(1234L)))
+        .isEqualTo(
+            "SELECT `x` FROM `p.d.v` FOR SYSTEM_TIME AS OF TIMESTAMP_MILLIS(1234) WHERE (x > 1)");
   }
 
   @Test
