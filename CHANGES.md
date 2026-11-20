@@ -22,6 +22,10 @@
 * PR #1567: `count()` and SQL `COUNT(*)` on a read with `snapshotTimeMillis` now count the table's
   rows as of the snapshot time, like the rows the read returns. Based on PR #1307, thanks
   @tom-s-powell !
+* PR #1570: Reads with `readDataFormat=AVRO` now decode `NUMERIC` and `BIGNUMERIC` values
+  (including arrays, precision-only declarations such as `NUMERIC(10)`, and unparameterized
+  `BIGNUMERIC`) with the column's BigQuery scale and rescale them to the column's Spark decimal
+  type, matching `readDataFormat=ARROW`.
 
 ## 0.46.1 - 2026-11-04
 
