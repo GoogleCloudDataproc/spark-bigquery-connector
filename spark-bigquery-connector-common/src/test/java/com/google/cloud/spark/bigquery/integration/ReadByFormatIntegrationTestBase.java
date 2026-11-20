@@ -542,7 +542,11 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
               testDataset, testTable));
 
       Dataset<Row> df =
-          spark.read().format("bigquery").load(String.format("%s.%s", testDataset, testTable));
+          spark
+              .read()
+              .format("bigquery")
+              .option("readDataFormat", parameters.get("dataFormat"))
+              .load(String.format("%s.%s", testDataset, testTable));
       StructType schema = df.schema();
       boolean schemaSizeCorrect = (schema.size() == 1);
       StructField mapField = schema.apply("map_field");
@@ -577,7 +581,7 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
             ReadByFormatIntegrationTestBase::readConvertMapApp,
             testDataset.toString(),
             testTable,
-            ImmutableMap.of());
+            ImmutableMap.of("dataFormat", dataFormat));
 
     assertThat(result.get("status").getAsString()).isEqualTo("success");
     assertThat(result.get("schemaSizeCorrect").getAsBoolean()).isTrue();
@@ -1019,11 +1023,6 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
             String.format(
                 "filter(array(%s, %s), e -> id %% 3 != 0) AS array_%s",
                 type.sparkValue("id"), type.sparkValue("id + 1"), type.name));
-      }
-      // The connector reads a repeated key/value struct as a Spark map. The Avro read path doesn't
-      // convert these columns.
-      if (dataFormat.equals("AVRO")) {
-        continue;
       }
       columns.add(
           String.format(
