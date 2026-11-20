@@ -1403,7 +1403,7 @@ word-break:break-word
   </tr>
   <tr valign="top">
    <td><code>bqEstimatedBytesScanned</code></td>
-   <td>Read Session estimate of logical bytes scanned if all streams are consumed</td>
+   <td>Estimated bytes scanned if all streams in the Read Session are consumed</td>
   </tr>
   <tr valign="top">
    <td><code>rows read</code></td>

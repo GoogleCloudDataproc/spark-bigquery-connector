@@ -6,7 +6,7 @@ public class SparkBigQueryCustomMetricConstants {
   public static final String BIG_QUERY_ESTIMATED_BYTES_SCANNED_METRIC_NAME =
       "bqEstimatedBytesScanned";
   static final String BIG_QUERY_ESTIMATED_BYTES_SCANNED_METRIC_DESCRIPTION =
-      "estimated logical bytes scanned by BigQuery Storage API";
+      "estimated bytes scanned if all streams in the BigQuery Read Session are consumed";
   public static final String BIG_QUERY_ROWS_READ_METRIC_NAME = "bqRowsRead";
   static final String BIG_QUERY_ROWS_READ_METRIC_DESCRIPTION = "number of BQ rows read";
   public static final String BIG_QUERY_SCAN_TIME_METRIC_NAME = "bqScanTime";
