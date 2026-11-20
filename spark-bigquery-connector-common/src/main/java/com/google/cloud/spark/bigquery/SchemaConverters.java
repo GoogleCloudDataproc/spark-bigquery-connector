@@ -386,7 +386,7 @@ public class SchemaConverters {
       return false;
     }
     FieldList subFields = field.getSubFields();
-    if (subFields.size() != 2) {
+    if (subFields == null || subFields.size() != 2) {
       return false;
     }
     Set<String> subFieldNames = subFields.stream().map(Field::getName).collect(Collectors.toSet());
