@@ -31,7 +31,8 @@ public class SparkBigQueryEstimatedBytesScannedMetricTest {
   @Test
   public void testDescription() {
     assertThat(metric.description())
-        .isEqualTo("estimated bytes scanned if all streams in the BigQuery Read Session are consumed");
+        .isEqualTo(
+            "estimated bytes scanned if all streams in the BigQuery Read Session are consumed");
   }
 
   @Test
