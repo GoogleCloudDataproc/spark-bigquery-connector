@@ -30,8 +30,19 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
+import java.math.BigDecimal;
+import java.nio.ByteBuffer;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import org.apache.avro.SchemaBuilder;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericRecord;
 import org.apache.spark.ml.linalg.SQLDataTypes;
+import org.apache.spark.sql.catalyst.InternalRow;
+import org.apache.spark.sql.catalyst.expressions.UnsafeProjection;
+import org.apache.spark.sql.catalyst.util.ArrayData;
 import org.apache.spark.sql.types.*;
 import org.junit.Test;
 
@@ -755,6 +766,101 @@ public class SchemaConverterTest {
     // Default is true
     assertThat(SchemaConvertersConfiguration.from(sparkConfig).getEnableArrowTimestampRebase())
         .isTrue();
+  }
+
+  @Test
+  public void testConvertAvroDecimals() {
+    Schema bqSchema =
+        Schema.of(
+            Field.newBuilder("numeric_10_2", LegacySQLTypeName.NUMERIC)
+                .setPrecision(10L)
+                .setScale(2L)
+                .build(),
+            Field.newBuilder("numeric_10", LegacySQLTypeName.NUMERIC).setPrecision(10L).build(),
+            Field.of("big_numeric", LegacySQLTypeName.BIGNUMERIC),
+            Field.newBuilder("numeric_10_2_array", LegacySQLTypeName.NUMERIC)
+                .setPrecision(10L)
+                .setScale(2L)
+                .setMode(Mode.REPEATED)
+                .build(),
+            Field.newBuilder("big_numeric_38_38_array", LegacySQLTypeName.BIGNUMERIC)
+                .setPrecision(38L)
+                .setScale(38L)
+                .setMode(Mode.REPEATED)
+                .build());
+    org.apache.avro.Schema avroSchema =
+        SchemaBuilder.record("root")
+            .fields()
+            .name("numeric_10_2")
+            .type()
+            .bytesType()
+            .noDefault()
+            .name("numeric_10")
+            .type()
+            .bytesType()
+            .noDefault()
+            .name("big_numeric")
+            .type()
+            .bytesType()
+            .noDefault()
+            .name("numeric_10_2_array")
+            .type()
+            .array()
+            .items()
+            .bytesType()
+            .noDefault()
+            .name("big_numeric_38_38_array")
+            .type()
+            .array()
+            .items()
+            .bytesType()
+            .noDefault()
+            .endRecord();
+    // BigQuery encodes each value with the column's scale: the declared one, 0 when only the
+    // precision is declared, and 38 for an unparameterized BIGNUMERIC.
+    GenericData.Record record = new GenericData.Record(avroSchema);
+    record.put("numeric_10_2", avroDecimal("1.23", 2));
+    record.put("numeric_10", avroDecimal("7", 0));
+    record.put("big_numeric", avroDecimal("1.5", 38));
+    record.put("numeric_10_2_array", Arrays.asList(avroDecimal("1.23", 2), avroDecimal("4.56", 2)));
+    record.put(
+        "big_numeric_38_38_array",
+        Arrays.asList(avroDecimal("0.000001", 38), avroDecimal("0.5", 38)));
+
+    SchemaConverters schemaConverters =
+        SchemaConverters.from(SchemaConvertersConfiguration.of(true, 38, 10));
+    InternalRow row = toUnsafeRow(schemaConverters, bqSchema, record);
+
+    assertThat(row.getDecimal(0, 10, 2).toJavaBigDecimal()).isEqualTo(new BigDecimal("1.23"));
+    assertThat(row.getDecimal(1, 10, 0).toJavaBigDecimal()).isEqualTo(new BigDecimal("7"));
+    assertThat(row.getDecimal(2, 38, 10).toJavaBigDecimal())
+        .isEqualTo(new BigDecimal("1.5000000000"));
+    ArrayData numerics = row.getArray(3);
+    assertThat(numerics.getDecimal(0, 10, 2).toJavaBigDecimal()).isEqualTo(new BigDecimal("1.23"));
+    assertThat(numerics.getDecimal(1, 10, 2).toJavaBigDecimal()).isEqualTo(new BigDecimal("4.56"));
+    ArrayData bigNumerics = row.getArray(4);
+    assertThat(bigNumerics.isNullAt(0)).isFalse();
+    assertThat(bigNumerics.getDecimal(0, 38, 38).toJavaBigDecimal())
+        .isEqualTo(new BigDecimal("0.000001").setScale(38));
+    assertThat(bigNumerics.getDecimal(1, 38, 38).toJavaBigDecimal())
+        .isEqualTo(new BigDecimal("0.5").setScale(38));
+  }
+
+  private static ByteBuffer avroDecimal(String value, int scale) {
+    return ByteBuffer.wrap(new BigDecimal(value).setScale(scale).unscaledValue().toByteArray());
+  }
+
+  /**
+   * Converts an Avro record the way the Avro read path does, then copies it into an UnsafeRow as
+   * Spark does, which is where a value that doesn't match the column's Spark type surfaces.
+   */
+  private static InternalRow toUnsafeRow(
+      SchemaConverters schemaConverters, Schema bqSchema, GenericRecord record) {
+    List<String> names =
+        bqSchema.getFields().stream().map(Field::getName).collect(Collectors.toList());
+    InternalRow row =
+        schemaConverters.convertToInternalRow(bqSchema, names, record, Optional.empty());
+    return UnsafeProjection.create(schemaConverters.toSpark(bqSchema)).apply(row);
   }
 
   private StructField simpleStructField(String name, DataType dataType) {
