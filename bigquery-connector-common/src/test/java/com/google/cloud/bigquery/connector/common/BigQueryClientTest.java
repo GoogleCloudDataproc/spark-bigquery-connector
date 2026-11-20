@@ -136,8 +136,7 @@ public class BigQueryClientTest {
                     TableId.of("p", "d", "v"),
                     ImmutableList.of("x"),
                     new String[] {"x > 1"},
-                    OptionalLong.empty())
-                .trim())
+                    OptionalLong.empty()))
         .isEqualTo("SELECT `x` FROM `p.d.v` WHERE (x > 1)");
   }
 
@@ -150,7 +149,7 @@ public class BigQueryClientTest {
                     ImmutableList.of(),
                     new String[0],
                     OptionalLong.of(1234L)))
-        .contains("`p.d.v` FOR SYSTEM_TIME AS OF TIMESTAMP_MILLIS(1234)");
+        .isEqualTo("SELECT * FROM `p.d.v` FOR SYSTEM_TIME AS OF TIMESTAMP_MILLIS(1234)");
   }
 
   @Test

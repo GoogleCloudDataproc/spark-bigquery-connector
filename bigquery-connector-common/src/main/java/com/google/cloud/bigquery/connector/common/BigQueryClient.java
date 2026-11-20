@@ -660,8 +660,9 @@ public class BigQueryClient {
                 " FOR SYSTEM_TIME AS OF TIMESTAMP_MILLIS(%d)", snapshotTimeMillis.getAsLong())
             : "";
 
-    return String.format(
-        "SELECT %s FROM `%s`%s %s", formattedQuery, tableName, snapshotTimeClause, whereClause);
+    String sql =
+        String.format("SELECT %s FROM `%s`%s", formattedQuery, tableName, snapshotTimeClause);
+    return whereClause.isEmpty() ? sql : sql + " " + whereClause;
   }
 
   public static String fullTableName(TableId tableId) {
