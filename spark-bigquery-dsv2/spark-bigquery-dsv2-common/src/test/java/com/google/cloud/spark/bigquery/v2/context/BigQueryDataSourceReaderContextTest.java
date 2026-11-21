@@ -16,10 +16,16 @@
 package com.google.cloud.spark.bigquery.v2.context;
 
 import static com.google.common.truth.Truth.assertThat;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.google.cloud.bigquery.BigQueryError;
+import com.google.cloud.bigquery.BigQueryException;
 import com.google.cloud.bigquery.ExternalTableDefinition;
 import com.google.cloud.bigquery.Field;
 import com.google.cloud.bigquery.FormatOptions;
@@ -33,6 +39,8 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.ViewDefinition;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
+import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
+import com.google.cloud.bigquery.connector.common.BigQueryErrorCode;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfig;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreatorConfigBuilder;
 import com.google.cloud.spark.bigquery.SparkBigQueryConfig;
@@ -48,31 +56,18 @@ public class BigQueryDataSourceReaderContextTest {
 
   private static final Schema SCHEMA = Schema.of(Field.of("name", StandardSQLTypeName.STRING));
   private static final TableId TABLE_ID = TableId.of("project", "dataset", "table");
+  private static final TableInfo TABLE_INFO =
+      TableInfo.of(TABLE_ID, StandardTableDefinition.of(SCHEMA));
 
   @Test
   public void testEmptyProjectionPartitionsLargerThanIntMax() {
     long rowCount = 13_927_954_135L;
     BigQueryClient bigQueryClient = mock(BigQueryClient.class);
-    when(bigQueryClient.calculateTableSize(any(TableId.class), any(), any())).thenReturn(rowCount);
-    TableInfo tableInfo =
-        TableInfo.of(
-            TableId.of("project", "dataset", "table"),
-            StandardTableDefinition.of(Schema.of(Field.of("name", StandardSQLTypeName.STRING))));
+    when(bigQueryClient.calculateTableSize(any(TableId.class), any(), any(), anyBoolean()))
+        .thenReturn(rowCount);
 
     BigQueryDataSourceReaderContext ctx =
-        new BigQueryDataSourceReaderContext(
-            tableInfo,
-            bigQueryClient,
-            /* bigQueryReadClientFactory= */ null,
-            /* tracerFactory= */ null,
-            new ReadSessionCreatorConfigBuilder().setDefaultParallelism(2).build(),
-            /* globalFilter= */ Optional.empty(),
-            /* schema= */ Optional.of(new StructType()),
-            "applicationId",
-            mock(SparkBigQueryConfig.class),
-            /* sqlContext= */ null,
-            /* sparkSession= */ null,
-            /* readTableOptions= */ null);
+        createEmptyProjectionContext(bigQueryClient, mock(SparkBigQueryConfig.class));
 
     List<Long> partitionSizes =
         ctx.planInputPartitionContexts()
@@ -190,5 +185,81 @@ public class BigQueryDataSourceReaderContextTest {
             /* sparkSession= */ null,
             /* readTableOptions= */ null)
         .getNumRowsBeforePruning();
+  }
+
+  @Test
+  public void testEmptyProjectionPassesUseMetadataStaleRowCountIfPossible() {
+    BigQueryClient bigQueryClient = mock(BigQueryClient.class);
+    when(bigQueryClient.calculateTableSize(any(TableId.class), any(), any(), anyBoolean()))
+        .thenReturn(10L);
+    SparkBigQueryConfig options = mock(SparkBigQueryConfig.class);
+    when(options.isUseMetadataStaleRowCountIfPossible()).thenReturn(true);
+
+    createEmptyProjectionContext(bigQueryClient, options)
+        .planInputPartitionContexts()
+        .collect(Collectors.toList());
+
+    verify(bigQueryClient)
+        .calculateTableSize(eq(TABLE_ID), eq(Optional.empty()), eq(OptionalLong.empty()), eq(true));
+  }
+
+  @Test
+  public void testEmptyProjectionAccessDeniedThrowsActionableError() {
+    String message = "User does not have bigquery.jobs.create permission in project p.";
+    BigQueryException accessDenied =
+        new BigQueryException(403, message, new BigQueryError("accessDenied", "global", message));
+    BigQueryClient bigQueryClient = mock(BigQueryClient.class);
+    when(bigQueryClient.calculateTableSize(any(TableId.class), any(), any(), anyBoolean()))
+        .thenThrow(accessDenied);
+    when(bigQueryClient.getProjectId()).thenReturn("parent-project");
+
+    BigQueryDataSourceReaderContext ctx =
+        createEmptyProjectionContext(bigQueryClient, mock(SparkBigQueryConfig.class));
+    BigQueryConnectorException e =
+        assertThrows(
+            BigQueryConnectorException.class,
+            () -> ctx.planInputPartitionContexts().collect(Collectors.toList()));
+
+    assertThat(e.getErrorCode()).isEqualTo(BigQueryErrorCode.BIGQUERY_FAILED_TO_EXECUTE_QUERY);
+    assertThat(e).hasMessageThat().contains("bigquery.jobs.create");
+    assertThat(e).hasMessageThat().contains("project parent-project");
+    assertThat(e).hasMessageThat().contains("useMetadataStaleRowCountIfPossible");
+    assertThat(e).hasMessageThat().doesNotContain("optimizedEmptyProjection");
+    assertThat(e).hasCauseThat().isSameInstanceAs(accessDenied);
+  }
+
+  @Test
+  public void testEmptyProjectionOtherErrorsArePropagated() {
+    BigQueryException quotaExceeded =
+        new BigQueryException(403, "quota", new BigQueryError("quotaExceeded", "global", "quota"));
+    BigQueryClient bigQueryClient = mock(BigQueryClient.class);
+    when(bigQueryClient.calculateTableSize(any(TableId.class), any(), any(), anyBoolean()))
+        .thenThrow(quotaExceeded);
+
+    BigQueryDataSourceReaderContext ctx =
+        createEmptyProjectionContext(bigQueryClient, mock(SparkBigQueryConfig.class));
+    BigQueryException e =
+        assertThrows(
+            BigQueryException.class,
+            () -> ctx.planInputPartitionContexts().collect(Collectors.toList()));
+
+    assertThat(e).isSameInstanceAs(quotaExceeded);
+  }
+
+  private static BigQueryDataSourceReaderContext createEmptyProjectionContext(
+      BigQueryClient bigQueryClient, SparkBigQueryConfig options) {
+    return new BigQueryDataSourceReaderContext(
+        TABLE_INFO,
+        bigQueryClient,
+        /* bigQueryReadClientFactory= */ null,
+        /* tracerFactory= */ null,
+        new ReadSessionCreatorConfigBuilder().setDefaultParallelism(2).build(),
+        /* globalFilter= */ Optional.empty(),
+        /* schema= */ Optional.of(new StructType()),
+        "applicationId",
+        options,
+        /* sqlContext= */ null,
+        /* sparkSession= */ null,
+        /* readTableOptions= */ null);
   }
 }

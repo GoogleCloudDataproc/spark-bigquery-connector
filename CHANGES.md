@@ -24,6 +24,13 @@
 * PR #1567: `count()` and SQL `COUNT(*)` on a read with `snapshotTimeMillis` now count the table's
   rows as of the snapshot time, like the rows the read returns. Based on PR #1307, thanks
   @tom-s-powell !
+* Issue #1352: Since 0.41.1, the optimized empty projection path (used by `count()`,
+  `isEmpty()` and similar) runs a `SELECT COUNT(*)` query job, which requires the
+  `bigquery.jobs.create` permission. When that permission is missing, the connector
+  now fails with an error explaining the requirement and the available alternatives.
+  Added the `useMetadataStaleRowCountIfPossible` option (default `false`) which, for
+  reads of native tables without filters or `snapshotTimeMillis`, uses the table
+  metadata row count instead of running a query job.
 
 ## 0.46.1 - 2026-11-04
 
