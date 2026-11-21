@@ -653,14 +653,16 @@ public class BigQueryClient {
 
     String whereClause = createWhereClause(filters).map(clause -> "WHERE " + clause).orElse("");
 
+    // FOR SYSTEM_TIME AS OF belongs to the table reference, so it goes before the WHERE clause.
     String snapshotTimeClause =
         snapshotTimeMillis.isPresent()
             ? String.format(
-                "FOR SYSTEM_TIME AS OF TIMESTAMP_MILLIS(%d)", snapshotTimeMillis.getAsLong())
+                " FOR SYSTEM_TIME AS OF TIMESTAMP_MILLIS(%d)", snapshotTimeMillis.getAsLong())
             : "";
 
-    return String.format(
-        "SELECT %s FROM `%s` %s %s", formattedQuery, tableName, whereClause, snapshotTimeClause);
+    String sql =
+        String.format("SELECT %s FROM `%s`%s", formattedQuery, tableName, snapshotTimeClause);
+    return whereClause.isEmpty() ? sql : sql + " " + whereClause;
   }
 
   public static String fullTableName(TableId tableId) {
