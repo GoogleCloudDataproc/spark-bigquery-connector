@@ -30,6 +30,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.function.Function;
@@ -133,6 +134,9 @@ public class SchemaConverters {
               // As long as this is not repeated it works, but technically arrays cannot contain
               // nulls, so select required instead of nullable.
               .setMode(Field.Mode.REQUIRED)
+              // NUMERIC and BIGNUMERIC elements are decoded with the column's precision and scale.
+              .setPrecision(field.getPrecision())
+              .setScale(field.getScale())
               .build();
 
       List<Object> valueList = (List<Object>) value;
@@ -213,18 +217,14 @@ public class SchemaConverters {
     if (LegacySQLTypeName.NUMERIC.equals(bqField.getType())
         || LegacySQLTypeName.BIGNUMERIC.equals(bqField.getType())) {
       byte[] bytes = getBytes((ByteBuffer) value);
-      int scale =
-          Optional.ofNullable(bqField.getScale())
-              .map(Long::intValue)
-              .orElse(BigQueryUtil.DEFAULT_NUMERIC_SCALE);
-      BigDecimal b = new BigDecimal(new BigInteger(bytes), scale);
-      int precision =
-          Optional.ofNullable(bqField.getPrecision())
-              .map(Long::intValue)
-              .orElse(BigQueryUtil.DEFAULT_NUMERIC_PRECISION);
-      Decimal d = Decimal.apply(b, precision, scale);
-
-      return d;
+      BigDecimal b = new BigDecimal(new BigInteger(bytes), getAvroDecimalScale(bqField));
+      // Match the Spark type of the column, which can have a different scale than the Avro value
+      // (e.g. DECIMAL(38, 10) by default for an unparameterized BIGNUMERIC).
+      DecimalType decimalType = getDecimalType(bqField);
+      return Decimal.apply(
+          b.setScale(decimalType.scale(), RoundingMode.HALF_UP),
+          decimalType.precision(),
+          decimalType.scale());
     }
 
     if (LegacySQLTypeName.RECORD.equals(bqField.getType())) {
@@ -253,6 +253,39 @@ public class SchemaConverters {
     buf.get(bytes);
 
     return bytes;
+  }
+
+  /**
+   * The scale of a NUMERIC or BIGNUMERIC value in the Avro rows of a read session: the declared
+   * scale, 0 when the column declares only a precision, and the type's default scale (9 for
+   * NUMERIC, 38 for BIGNUMERIC) when it declares neither.
+   */
+  private static int getAvroDecimalScale(Field field) {
+    if (field.getScale() != null) {
+      return field.getScale().intValue();
+    }
+    if (field.getPrecision() != null) {
+      return 0;
+    }
+    return LegacySQLTypeName.NUMERIC.equals(field.getType())
+        ? BigQueryUtil.DEFAULT_NUMERIC_SCALE
+        : BigQueryUtil.DEFAULT_BIG_NUMERIC_SCALE;
+  }
+
+  /** The Spark type of a NUMERIC or BIGNUMERIC field, as computed by {@link #convert(Field)}. */
+  private DecimalType getDecimalType(Field field) {
+    if (LegacySQLTypeName.NUMERIC.equals(field.getType())) {
+      return createDecimalTypeFromNumericField(
+          field,
+          LegacySQLTypeName.NUMERIC,
+          BigQueryUtil.DEFAULT_NUMERIC_PRECISION,
+          BigQueryUtil.DEFAULT_NUMERIC_SCALE);
+    }
+    return createDecimalTypeFromNumericField(
+        field,
+        LegacySQLTypeName.BIGNUMERIC,
+        configuration.getBigNumericDefaultPrecision(),
+        configuration.getBigNumericDefaultScale());
   }
 
   // Schema is not recursive so add helper for sequence of fields

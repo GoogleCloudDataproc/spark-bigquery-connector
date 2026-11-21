@@ -1007,19 +1007,15 @@ public class ReadByFormatIntegrationTestBase extends SparkBigQueryIntegrationTes
       if (type.name.equals("int64")) {
         continue;
       }
-      // The Avro read path returns NULL elements for ARRAY<BIGNUMERIC>.
-      boolean skipArray = dataFormat.equals("AVRO") && type.name.equals("bignumeric");
-      if (!skipArray) {
-        columns.add(String.format("array_%s ARRAY<%s>", type.name, type.bigQueryType));
-        bigQueryValues.add(
-            String.format(
-                "IF(MOD(i, 3) = 0, [], [%s, %s])",
-                type.bigQueryValue("i"), type.bigQueryValue("i + 1")));
-        expectedColumns.add(
-            String.format(
-                "filter(array(%s, %s), e -> id %% 3 != 0) AS array_%s",
-                type.sparkValue("id"), type.sparkValue("id + 1"), type.name));
-      }
+      columns.add(String.format("array_%s ARRAY<%s>", type.name, type.bigQueryType));
+      bigQueryValues.add(
+          String.format(
+              "IF(MOD(i, 3) = 0, [], [%s, %s])",
+              type.bigQueryValue("i"), type.bigQueryValue("i + 1")));
+      expectedColumns.add(
+          String.format(
+              "filter(array(%s, %s), e -> id %% 3 != 0) AS array_%s",
+              type.sparkValue("id"), type.sparkValue("id + 1"), type.name));
       // The connector reads a repeated key/value struct as a Spark map. The Avro read path doesn't
       // convert these columns.
       if (dataFormat.equals("AVRO")) {
