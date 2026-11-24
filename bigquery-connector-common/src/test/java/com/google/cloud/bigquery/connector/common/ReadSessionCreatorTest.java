@@ -43,6 +43,7 @@ import com.google.cloud.bigquery.storage.v1.ReadStream;
 import com.google.cloud.bigquery.storage.v1.stub.EnhancedBigQueryReadStub;
 import com.google.common.collect.ImmutableList;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.Arrays;
 import java.util.Optional;
 import java.util.OptionalInt;
@@ -59,7 +60,7 @@ public class ReadSessionCreatorTest {
   BigQueryClient bigQueryClient = mock(BigQueryClient.class);
   UnaryCallable<CreateReadSessionRequest, ReadSession> createReadSessionCall =
       mock(UnaryCallable.class);
-  BigQueryReadClient readClient = BigQueryReadClient.create(stub);
+  BigQueryReadClient readClient = createMockBigQueryReadClient(stub);
   BigQueryClientFactory bigQueryReadClientFactory = mock(BigQueryClientFactory.class);
   TableInfo table =
       TableInfo.newBuilder(
@@ -214,5 +215,20 @@ public class ReadSessionCreatorTest {
     assertThat(createReadSessionRequest.getMaxStreamCount()).isEqualTo(21_000);
     assertThat(createReadSessionRequest.getPreferredMinStreamCount())
         .isEqualTo(30); // 3 * given default parallelism
+  }
+
+  private static BigQueryReadClient createMockBigQueryReadClient(EnhancedBigQueryReadStub stub) {
+    try {
+      BigQueryReadClient client = BigQueryReadClient.create(stub);
+      // settings is null, causing NPE in some of the tests
+      java.lang.reflect.Field settingsField = BigQueryReadClient.class.getDeclaredField("settings");
+      settingsField.setAccessible(true);
+      settingsField.set(client, BigQueryReadSettings.newBuilder().build());
+      return client;
+    } catch (ReflectiveOperationException e) {
+      throw new RuntimeException(e);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
+    }
   }
 }

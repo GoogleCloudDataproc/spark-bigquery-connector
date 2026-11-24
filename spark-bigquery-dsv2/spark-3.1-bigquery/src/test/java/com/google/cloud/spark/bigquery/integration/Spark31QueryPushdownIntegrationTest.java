@@ -17,7 +17,9 @@ package com.google.cloud.spark.bigquery.integration;
 
 import com.google.cloud.spark.bigquery.BigQueryConnectorUtils;
 import org.junit.Before;
+import org.junit.Ignore;
 
+@Ignore("Query pushdown is no longer supported")
 public class Spark31QueryPushdownIntegrationTest extends QueryPushdownIntegrationTestBase {
 
   @Before
