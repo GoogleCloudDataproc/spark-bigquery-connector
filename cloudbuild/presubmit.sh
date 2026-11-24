@@ -39,7 +39,7 @@ case $STEP in
 
   # Run unit tests
   unittest)
-    $MVN test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1_2.12,dsv1_2.13,dsv2
+    $MVN test jacoco:report jacoco:report-aggregate -Pcoverage,dsv1_2.12,dsv1_2.13,dsv2_3.1
     # Upload test coverage report to Codecov
     bash <(curl -s https://codecov.io/bash) -K -F "${STEP}"
     ;;
@@ -52,11 +52,6 @@ case $STEP in
   # Run integration tests
   integrationtest-2.13)
     $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.13
-    ;;
-
-  # Run integration tests
-  integrationtest-2.4)
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_2.4
     ;;
 
   # Run integration tests
