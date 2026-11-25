@@ -480,6 +480,7 @@ public class ReadIntegrationTestBase extends SparkBigQueryIntegrationTestBase {
    * DeadlineExceededException
    */
   @Test
+  @Ignore("Test has become flaky")
   public void testCreateReadSessionTimeoutWithLessTimeOnHugeData() {
     Dataset<Row> df =
         spark

@@ -1,5 +1,26 @@
 # Release Notes
 
+## Next
+
+* Arrow has been upgraded to version 17.0.0
+* Avro has been upgraded to version 1.11.5
+* BigQuery API has been upgraded to version 2.69.0
+* BigQuery Storage API has been upgraded to version 3.30.0
+* GAX has been upgraded to version 2.82.0
+* gRPC has been upgraded to version 1.83.1
+* Guava has been upgraded to version 33.7.2-jre
+* Jackson has been upgraded to version 2.22.4
+* JSON has been upgraded to version 20260814
+* Netty has been upgraded to version 4.2.19.Final
+* Protocol Buffers has been upgraded to version 4.35.1
+* google-api-client has been upgraded to version 2.9.2
+* google-auth-library has been upgraded to version 1.49.0
+* google-cloud-core has been upgraded to version 2.72.0
+* commons-codec has been upgraded to version 1.22.1
+* commons-compress has been upgraded to version 1.28.0
+* commons-io has been upgraded to version 2.22.0
+* commons-lang3 has been upgraded to version 3.20.0
+
 ## 0.27.1 - 2022-10-18
 
 * PR #792: Added ability to set table labels while writing to a BigQuery table
