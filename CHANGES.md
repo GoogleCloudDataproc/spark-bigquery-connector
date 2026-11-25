@@ -2,6 +2,27 @@
 
 ## Next
 
+* Arrow has been upgraded to version 17.0.0
+* Avro has been upgraded to version 1.11.5
+* BigQuery API has been upgraded to version 2.69.0
+* BigQuery Storage API has been upgraded to version 3.30.0
+* Commons Codec has been upgraded to version 1.22.1
+* Commons Compress has been upgraded to version 1.28.0 (addresses CVE-2024-25710, CVE-2024-26308)
+* Commons IO has been upgraded to version 2.22.0
+* Commons Lang3 has been upgraded to version 3.20.0
+* GAX has been upgraded to version 2.82.0
+* google-api-client has been upgraded to version 2.9.2
+* google-auth-library has been upgraded to version 1.49.0
+* google-cloud-core has been upgraded to version 2.72.0
+* gRPC has been upgraded to version 1.83.1 (addresses CVE-2025-55163)
+* Guava has been upgraded to version 33.7.2-jre (addresses CVE-2026-102554)
+* Jackson has been upgraded to version 2.22.4 (addresses multiple CVEs including CVE-2026-18401, CVE-2026-19032, CVE-2026-89425)
+* JSON has been upgraded to version 20260814 (addresses CVE-2026-59171)
+* Netty has been upgraded to version 4.2.19.Final (addresses multiple CVEs including CVE-2025-24970, CVE-2025-55163, CVE-2026-75595)
+* OpenLineage has been upgraded to version 1.55.0
+* OpenTelemetry has been upgraded to version 1.67.0 (addresses CVE-2026-118259)
+* Protocol Buffers has been upgraded to version 4.35.1 (addresses CVE-2024-7254)
+
 ## 0.34.1 - 2025-03-23
 
 * PR #1212: Support OpenLineage in spark-3.x-bigquery connectors

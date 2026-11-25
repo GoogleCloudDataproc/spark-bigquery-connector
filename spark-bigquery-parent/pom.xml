@@ -51,21 +51,27 @@
         <gpg.skip>true</gpg.skip>
         <revision>0.0.1-SNAPSHOT</revision>
 
-        <avro.version>1.11.3</avro.version>
-        <arrow.version>13.0.0</arrow.version>
-        <gax.version>2.35.0</gax.version>
-        <google-cloud-bigquery.version>2.33.2</google-cloud-bigquery.version>
-        <google-cloud-bigquerystorage.version>2.44.0</google-cloud-bigquerystorage.version>
-        <google-cloud-dataproc.version>4.25.0</google-cloud-dataproc.version>
-        <google-cloud-storage.version>2.28.0</google-cloud-storage.version>
-        <google-truth.version>1.1.5</google-truth.version>
-        <grpc.version>1.58.0</grpc.version>
-        <guava.version>32.1.3-jre</guava.version>
-        <jackson.version>2.15.3</jackson.version>
-        <netty.version>4.1.100.Final</netty.version>
-        <openlineage-spark.version>1.13.1</openlineage-spark.version>
-        <paranamer.version>2.8</paranamer.version>
-        <protobuf.version>3.24.4</protobuf.version>
+        <!-- avro 1.12.0 is compiled with java 11 -->
+        <avro.version>1.11.5</avro.version>
+        <!-- arrow 18.0.0 removed the support for java 8 -->
+        <arrow.version>17.0.0</arrow.version>
+        <gax.version>2.82.0</gax.version>
+        <google-api-client.version>2.9.2</google-api-client.version>
+        <google-auth.version>1.49.0</google-auth.version>
+        <google-cloud-bigquery.version>2.69.0</google-cloud-bigquery.version>
+        <google-cloud-bigquerystorage.version>3.30.0</google-cloud-bigquerystorage.version>
+        <google-cloud-core.version>2.72.0</google-cloud-core.version>
+        <google-cloud-dataproc.version>4.91.0</google-cloud-dataproc.version>
+        <google-cloud-storage.version>2.70.0</google-cloud-storage.version>
+        <google-truth.version>1.4.5</google-truth.version>
+        <grpc.version>1.83.1</grpc.version>
+        <guava.version>33.7.2-jre</guava.version>
+        <jackson.version>2.22.4</jackson.version>
+        <netty.version>4.2.19.Final</netty.version>
+        <openlineage-spark.version>1.55.0</openlineage-spark.version>
+        <opentelemetry.version>1.67.0</opentelemetry.version>
+        <paranamer.version>2.8.3</paranamer.version>
+        <protobuf.version>4.35.1</protobuf.version>
         <zstd.version>1.4.9-1</zstd.version>
         <deploy.skip>true</deploy.skip>
         <nexus.remote.skip>false</nexus.remote.skip>
@@ -76,6 +82,18 @@
     </properties>
     <dependencyManagement>
         <dependencies>
+            <!-- Pin google-cloud-core to 2.72.0. bigquery 2.69.0 (needed for the BigLakeConfiguration
+                 @Nullable fix) transitively pulls core 2.73.0, which references
+                 com.google.api.gax.httpjson.HttpJsonConscryptUtils (absent in gax 2.82.0) and would
+                 force gax 2.83.0 + conscrypt 2.6.0. Holding core at 2.72.0 keeps the whole train
+                 coherent with gax 2.82.0 / conscrypt 2.5.2. -->
+            <dependency>
+                <groupId>com.google.cloud</groupId>
+                <artifactId>google-cloud-core-bom</artifactId>
+                <version>${google-cloud-core.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
             <dependency>
                 <groupId>aopalliance</groupId>
                 <artifactId>aopalliance</artifactId>
@@ -115,11 +133,18 @@
                 <scope>import</scope>
             </dependency>
             <dependency>
-                    <groupId>com.google.auth</groupId>
-                    <artifactId>google-auth-library-bom</artifactId>
-                    <version>1.16.1</version>
-                    <type>pom</type>
-                    <scope>import</scope>
+                <groupId>com.google.api-client</groupId>
+                <artifactId>google-api-client-bom</artifactId>
+                <version>${google-api-client.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.google.auth</groupId>
+                <artifactId>google-auth-library-bom</artifactId>
+                <version>${google-auth.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>com.google.cloud</groupId>
@@ -166,7 +191,7 @@
             <dependency>
                 <groupId>com.google.errorprone</groupId>
                 <artifactId>error_prone_annotations</artifactId>
-                <version>2.21.1</version>
+                <version>2.50.0</version>
             </dependency>
             <dependency>
                 <groupId>com.google.code.findbugs</groupId>
@@ -200,7 +225,7 @@
             <dependency>
                 <groupId>commons-codec</groupId>
                 <artifactId>commons-codec</artifactId>
-                <version>1.16.0</version>
+                <version>1.22.1</version>
             </dependency>
             <dependency>
                 <groupId>commons-lang</groupId>
@@ -232,6 +257,13 @@
                 <artifactId>openlineage-spark_2.13</artifactId>
                 <version>${openlineage-spark.version}</version>
                 <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.opentelemetry</groupId>
+                <artifactId>opentelemetry-bom</artifactId>
+                <version>${opentelemetry.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>javax.inject</groupId>
@@ -267,23 +299,30 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.arrow</groupId>
-                <artifactId>arrow-compression</artifactId>
+                <artifactId>arrow-bom</artifactId>
                 <version>${arrow.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
             </dependency>
             <dependency>
                 <groupId>org.apache.arrow</groupId>
-                <artifactId>arrow-memory-netty</artifactId>
-                <version>${arrow.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.arrow</groupId>
-                <artifactId>arrow-vector</artifactId>
+                <artifactId>arrow-memory-netty-buffer-patch</artifactId>
                 <version>${arrow.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-compress</artifactId>
-                <version>1.24.0</version>
+                <version>1.28.0</version>
+            </dependency>
+            <dependency>
+                <groupId>commons-io</groupId>
+                <artifactId>commons-io</artifactId>
+                <version>2.22.0</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>3.20.0</version>
             </dependency>
             <dependency>
                 <groupId>org.mockito</groupId>
@@ -299,7 +338,7 @@
             <dependency>
                 <groupId>org.json</groupId>
                 <artifactId>json</artifactId>
-                <version>20231013</version>
+                <version>20260814</version>
             </dependency>
         </dependencies>
     </dependencyManagement>
@@ -629,8 +668,16 @@
                             <shadedPattern>com.google.cloud.spark.bigquery.repackaged.io.opencensus</shadedPattern>
                         </relocation>
                         <relocation>
+                            <pattern>io.opentelemetry</pattern>
+                            <shadedPattern>com.google.cloud.spark.bigquery.repackaged.io.opentelemetry</shadedPattern>
+                        </relocation>
+                        <relocation>
                             <pattern>io.perfmark</pattern>
                             <shadedPattern>com.google.cloud.spark.bigquery.repackaged.io.perfmark</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>net.bytebuddy</pattern>
+                            <shadedPattern>com.google.cloud.spark.bigquery.repackaged.net.bytebuddy</shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>org.apache.arrow</pattern>
@@ -643,6 +690,9 @@
                         <relocation>
                             <pattern>org.apache.commons</pattern>
                             <shadedPattern>com.google.cloud.spark.bigquery.repackaged.org.apache.commons</shadedPattern>
+                            <excludes>
+                                <exclude>org.apache.commons.logging.*</exclude>
+                            </excludes>
                         </relocation>
                         <relocation>
                             <pattern>org.apache.http</pattern>
@@ -658,8 +708,17 @@
                             <shadedPattern>com.google.cloud.spark.bigquery.repackaged.org.codehaus.mojo</shadedPattern>
                         </relocation>
                         <relocation>
+                            <pattern>org.eclipse.collections</pattern>
+                            <shadedPattern>com.google.cloud.spark.bigquery.repackaged.org.eclipse.collections
+                            </shadedPattern>
+                        </relocation>
+                        <relocation>
                             <pattern>org.json</pattern>
                             <shadedPattern>com.google.cloud.spark.bigquery.repackaged.org.json</shadedPattern>
+                        </relocation>
+                        <relocation>
+                            <pattern>org.jspecify</pattern>
+                            <shadedPattern>com.google.cloud.spark.bigquery.repackaged.org.jspecify</shadedPattern>
                         </relocation>
                         <relocation>
                             <pattern>org.threeten</pattern>
@@ -698,6 +757,7 @@
                                 <exclude>META-INF/*.DSA</exclude>
                                 <exclude>META-INF/*.RSA</exclude>
                                 <exclude>META-INF/maven/**</exclude>
+                                <exclude>META-INF/versions/**</exclude>
                                 <exclude>**/*.proto</exclude>
                             </excludes>
                         </filter>
