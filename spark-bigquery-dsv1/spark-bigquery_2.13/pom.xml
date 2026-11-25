@@ -38,6 +38,104 @@
       <groupId>io.openlineage</groupId>
       <artifactId>openlineage-spark_${scala.binary.version}</artifactId>
     </dependency>
+    <!-- Spark 3.2.0 pulls unshaded orc-core/orc-mapreduce 1.6.11 compiled against
+         protobuf 2.5.0, which collides with protobuf 4.x on the unshaded test
+         classpath (in the shaded distributable JAR protobuf is relocated). Use the
+         shaded-protobuf ORC artifacts for tests. -->
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-mllib_${scala.binary.version}</artifactId>
+      <version>${spark.version}</version>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>io.netty</groupId>
+          <artifactId>netty</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.orc</groupId>
+          <artifactId>orc-core</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.orc</groupId>
+          <artifactId>orc-mapreduce</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-sql_${scala.binary.version}</artifactId>
+      <version>${spark.version}</version>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>io.netty</groupId>
+          <artifactId>netty</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.orc</groupId>
+          <artifactId>orc-core</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.orc</groupId>
+          <artifactId>orc-mapreduce</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.orc</groupId>
+      <artifactId>orc-core</artifactId>
+      <version>1.8.3</version>
+      <classifier>shaded-protobuf</classifier>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-common</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-hdfs</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-client-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.hive</groupId>
+          <artifactId>hive-storage-api</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.orc</groupId>
+      <artifactId>orc-mapreduce</artifactId>
+      <version>1.8.3</version>
+      <classifier>shaded-protobuf</classifier>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-common</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.hadoop</groupId>
+          <artifactId>hadoop-mapreduce-client-core</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.orc</groupId>
+          <artifactId>orc-core</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.hive</groupId>
+          <artifactId>hive-storage-api</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.esotericsoftware</groupId>
+          <artifactId>kryo-shaded</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
