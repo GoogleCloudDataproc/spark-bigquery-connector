@@ -2,6 +2,26 @@
 
 ## Next
 
+* Arrow has been upgraded to version 17.0.0
+* Avro has been upgraded to version 1.11.5 (fixing CVE-2024-47561)
+* BigQuery API has been upgraded to version 2.69.0
+* BigQuery Storage API has been upgraded to version 3.30.0
+* Commons Codec has been upgraded to version 1.22.1
+* Commons Compress has been upgraded to version 1.28.0 (fixing CVE-2024-25710, CVE-2024-26308)
+* Commons IO has been upgraded to version 2.22.0
+* Commons Lang3 has been upgraded to version 3.20.0
+* GAX has been upgraded to version 2.82.0
+* google-api-client has been upgraded to version 2.9.2
+* google-auth has been upgraded to version 1.49.0
+* gRPC has been upgraded to version 1.83.1
+* Guava has been upgraded to version 33.7.2-jre (fixing CVE-2026-102554)
+* Jackson has been upgraded to version 2.22.4 (fixing CVE-2026-18401, CVE-2026-19032, CVE-2026-54512, CVE-2026-54513, CVE-2026-54514, CVE-2026-54515, CVE-2026-59888, CVE-2026-59889, CVE-2026-68494, CVE-2026-68497, CVE-2026-77310, CVE-2026-83557, CVE-2026-89425, CVE-2026-91776, CVE-2026-91777)
+* JSON has been upgraded to version 20260814 (fixing CVE-2026-59171)
+* Netty has been upgraded to version 4.2.19.Final (fixing CVE-2024-29025, CVE-2024-47535, CVE-2025-24970, CVE-2025-25193, CVE-2025-55163, CVE-2025-58056, CVE-2025-58057, CVE-2025-67735, CVE-2026-33870, CVE-2026-33871, CVE-2026-41417, CVE-2026-42578, CVE-2026-42580, CVE-2026-42581, CVE-2026-42583, CVE-2026-42584, CVE-2026-42585, CVE-2026-42587, CVE-2026-44249, CVE-2026-45416, CVE-2026-47244, CVE-2026-48043, CVE-2026-50010, CVE-2026-50020, CVE-2026-50560, CVE-2026-55831, CVE-2026-55833, CVE-2026-56745, CVE-2026-56746, CVE-2026-56819, CVE-2026-59898, CVE-2026-59899, CVE-2026-59900, CVE-2026-59901, CVE-2026-59903, CVE-2026-59921, CVE-2026-75595, CVE-2026-75596)
+* OpenLineage has been upgraded to version 1.55.0
+* OpenTelemetry has been upgraded to version 1.68.0 (fixing CVE-2026-45292, CVE-2026-118259)
+* Protocol Buffers has been upgraded to version 4.35.1 (fixing CVE-2024-7254)
+
 ## 0.36.5 - 2025-02-13
 Issue #1254: fix getting partitioning fields for pseudo columns
 
