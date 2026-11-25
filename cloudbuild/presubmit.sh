@@ -25,6 +25,10 @@ function checkenv() {
 }
 
 readonly MVN="./mvnw -B -e -s /workspace/cloudbuild/gcp-settings.xml -Dmaven.repo.local=/workspace/.repository"
+# Integration tests hit the live BigQuery API and occasionally fail on transient backend
+# errors. Rerun failing tests up to 2 times; tests that pass on rerun are reported as
+# "flaky" in the failsafe summary instead of failing the build.
+readonly IT_OPTS="-Dfailsafe.rerunFailingTestsCount=2"
 readonly STEP=$1
 
 cd /workspace
@@ -46,17 +50,17 @@ case $STEP in
 
   # Run integration tests
   integrationtest-2.12)
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.12
+    $MVN ${IT_OPTS} failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.12
     ;;
 
   # Run integration tests
   integrationtest-2.13)
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.13
+    $MVN ${IT_OPTS} failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv1_2.13
     ;;
 
   # Run integration tests
   integrationtest-3.1)
-    $MVN failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_3.1
+    $MVN ${IT_OPTS} failsafe:integration-test failsafe:verify jacoco:report jacoco:report-aggregate -Pcoverage,integration,dsv2_3.1
     ;;
 
   upload-it-to-codecov)
