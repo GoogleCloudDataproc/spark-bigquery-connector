@@ -22,6 +22,9 @@ import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.gen
 import static com.google.cloud.spark.bigquery.acceptance.AcceptanceTestUtils.uploadConnectorJar;
 
 import com.google.api.gax.longrunning.OperationFuture;
+import com.google.api.gax.longrunning.OperationTimedPollAlgorithm;
+import com.google.api.gax.retrying.RetrySettings;
+import com.google.api.gax.retrying.TimedRetryAlgorithm;
 import com.google.cloud.dataproc.v1.Batch;
 import com.google.cloud.dataproc.v1.BatchControllerClient;
 import com.google.cloud.dataproc.v1.BatchControllerSettings;
@@ -31,6 +34,7 @@ import com.google.cloud.dataproc.v1.EnvironmentConfig;
 import com.google.cloud.dataproc.v1.ExecutionConfig;
 import com.google.cloud.dataproc.v1.PySparkBatch;
 import com.google.cloud.dataproc.v1.RuntimeConfig;
+import java.time.Duration;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
@@ -65,11 +69,26 @@ public class DataprocServerlessAcceptanceTestBase {
     uploadConnectorJar(CONNECTOR_JAR_DIRECTORY, connectorJarPrefix, context.connectorJarUri);
     createBqDataset(context.bqDataset);
 
-    batchController =
-        BatchControllerClient.create(
-            BatchControllerSettings.newBuilder()
-                .setEndpoint(AcceptanceTestConstants.DATAPROC_ENDPOINT)
+    BatchControllerSettings.Builder batchControllerSettingsBuilder =
+        BatchControllerSettings.newBuilder().setEndpoint(AcceptanceTestConstants.DATAPROC_ENDPOINT);
+    Duration totalTimeout =
+        Duration.ofSeconds(AcceptanceTestConstants.SERVERLESS_BATCH_TIMEOUT_IN_SECONDS);
+    TimedRetryAlgorithm timedRetryAlgorithm =
+        OperationTimedPollAlgorithm.create(
+            RetrySettings.newBuilder()
+                .setInitialRetryDelayDuration(Duration.ofMillis(5000L))
+                .setRetryDelayMultiplier(1.0)
+                .setMaxRetryDelayDuration(Duration.ofMillis(45000L))
+                .setInitialRpcTimeoutDuration(Duration.ZERO)
+                .setRpcTimeoutMultiplier(1.0)
+                .setMaxRpcTimeoutDuration(totalTimeout)
+                .setTotalTimeoutDuration(totalTimeout)
                 .build());
+    batchControllerSettingsBuilder
+        .createBatchOperationSettings()
+        .setPollingAlgorithm(timedRetryAlgorithm);
+
+    batchController = BatchControllerClient.create(batchControllerSettingsBuilder.build());
   }
 
   @After
