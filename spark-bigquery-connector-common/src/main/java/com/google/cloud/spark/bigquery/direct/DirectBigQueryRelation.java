@@ -21,6 +21,8 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.connector.common.BigQueryClient;
 import com.google.cloud.bigquery.connector.common.BigQueryClientFactory;
+import com.google.cloud.bigquery.connector.common.BigQueryConnectorException;
+import com.google.cloud.bigquery.connector.common.BigQueryErrorCode;
 import com.google.cloud.bigquery.connector.common.BigQueryTracerFactory;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
 import com.google.cloud.bigquery.connector.common.ReadSessionCreator;
@@ -129,14 +131,33 @@ public class DirectBigQueryRelation extends BigQueryRelation
               table,
               ImmutableList.copyOf(requiredColumns),
               BigQueryUtil.emptyIfNeeded(compiledFilter));
-      // For a view, actualTable is a new table that holds the view's rows at the snapshot time,
-      // so the filter and the snapshot time were already applied.
-      boolean isView = readSessionCreator.isInputTableAView(table);
-      return (RDD<Row>)
-          generateEmptyRowRDD(
-              actualTable,
-              isView ? "" : compiledFilter,
-              isView ? OptionalLong.empty() : options.getSnapshotTimeMillis());
+      try {
+        // For a view, actualTable is a new table that holds the view's rows at the snapshot time,
+        // so the filter and the snapshot time were already applied.
+        boolean isView = readSessionCreator.isInputTableAView(table);
+        return (RDD<Row>)
+            generateEmptyRowRDD(
+                actualTable,
+                isView ? "" : compiledFilter,
+                isView ? OptionalLong.empty() : options.getSnapshotTimeMillis());
+      } catch (RuntimeException e) {
+        if (BigQueryUtil.isAccessDenied(e)) {
+          throw new BigQueryConnectorException(
+              BigQueryErrorCode.BIGQUERY_FAILED_TO_EXECUTE_QUERY,
+              String.format(
+                  "Access denied while running the query job used by the optimized empty"
+                      + " projection (e.g. count()) on table %s. This optimization requires the"
+                      + " bigquery.jobs.create permission in project %s. Either grant this"
+                      + " permission, set the useMetadataStaleRowCountIfPossible option to true"
+                      + " to use the possibly stale row count from the table metadata (only"
+                      + " applies to native tables read without filters or snapshotTimeMillis),"
+                      + " or set the optimizedEmptyProjection option to false to read the rows"
+                      + " through the BigQuery Storage Read API instead.",
+                  getTableNameForLogging(), bigQueryClient.getProjectId()),
+              e);
+        }
+        throw e;
+      }
     } else if (requiredColumns.length == 0) {
       log.debug("Not using optimized empty projection");
     }
@@ -190,7 +211,11 @@ public class DirectBigQueryRelation extends BigQueryRelation
     Optional<String> optionalFilter =
         (filter.length() == 0) ? Optional.empty() : Optional.of(filter);
     long numberOfRows =
-        bigQueryClient.calculateTableSize(tableInfo, optionalFilter, snapshotTimeMillis);
+        bigQueryClient.calculateTableSize(
+            tableInfo,
+            optionalFilter,
+            snapshotTimeMillis,
+            options.isUseMetadataStaleRowCountIfPossible());
 
     Function1<Object, InternalRow> objectToInternalRowConverter =
         new ObjectToInternalRowConverter();

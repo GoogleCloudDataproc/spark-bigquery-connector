@@ -683,7 +683,16 @@ public class BigQueryClient {
    */
   public long calculateTableSize(
       TableId tableId, Optional<String> filter, OptionalLong snapshotTimeMillis) {
-    return calculateTableSize(getTable(tableId), filter, snapshotTimeMillis);
+    return calculateTableSize(tableId, filter, snapshotTimeMillis, false);
+  }
+
+  public long calculateTableSize(
+      TableId tableId,
+      Optional<String> filter,
+      OptionalLong snapshotTimeMillis,
+      boolean useMetadataStaleRowCountIfPossible) {
+    return calculateTableSize(
+        getTable(tableId), filter, snapshotTimeMillis, useMetadataStaleRowCountIfPossible);
   }
 
   /**
@@ -697,6 +706,42 @@ public class BigQueryClient {
    */
   public long calculateTableSize(
       TableInfo tableInfo, Optional<String> filter, OptionalLong snapshotTimeMillis) {
+    return calculateTableSize(tableInfo, filter, snapshotTimeMillis, false);
+  }
+
+  /**
+   * Returns the number of rows in a table, view or materialized view.
+   *
+   * @param tableInfo the table to count the rows of
+   * @param filter an optional SQL predicate that the counted rows match
+   * @param snapshotTimeMillis if present, counts the rows of a table as they were at this time
+   *     (time travel). It's ignored for views and materialized views.
+   * @param useMetadataStaleRowCountIfPossible if true, the number of rows of a BigQuery native
+   *     table read without a filter or a snapshot time is taken from the table metadata instead of
+   *     running a {@code COUNT(*)} query job. This avoids the need for the {@code
+   *     bigquery.jobs.create} permission, but the value may not yet include rows recently written
+   *     through the Storage Write API or the legacy streaming API.
+   * @return the number of rows
+   */
+  public long calculateTableSize(
+      TableInfo tableInfo,
+      Optional<String> filter,
+      OptionalLong snapshotTimeMillis,
+      boolean useMetadataStaleRowCountIfPossible) {
+    // The metadata only holds the current row count, so it can't answer a time travel read.
+    if (useMetadataStaleRowCountIfPossible
+        && !filter.isPresent()
+        && !snapshotTimeMillis.isPresent()
+        && isBigQueryNativeTable(tableInfo)) {
+      Long numRows = ((StandardTableDefinition) tableInfo.getDefinition()).getNumRows();
+      if (numRows != null) {
+        log.debug(
+            "Using the possibly stale row count from the metadata of table {}: {}",
+            fullTableName(tableInfo.getTableId()),
+            numRows);
+        return numRows;
+      }
+    }
     return getNumberOfRows(createTableSizeSql(tableInfo, filter, snapshotTimeMillis));
   }
 
