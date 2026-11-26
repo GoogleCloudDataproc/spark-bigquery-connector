@@ -24,6 +24,8 @@
 * PR #1567: `count()` and SQL `COUNT(*)` on a read with `snapshotTimeMillis` now count the table's
   rows as of the snapshot time, like the rows the read returns. Based on PR #1307, thanks
   @tom-s-powell !
+* PR #1568: View materialization queries now place the `FOR SYSTEM_TIME AS OF` clause before
+  `WHERE`, so reading a view with both `snapshotTimeMillis` and a pushed-down filter succeeds.
 
 ## 0.46.1 - 2026-11-04
 
