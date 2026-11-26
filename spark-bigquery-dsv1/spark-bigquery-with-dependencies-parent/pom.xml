@@ -98,6 +98,9 @@
               <pattern>org.apache.commons</pattern>
               <shadedPattern>com.google.cloud.spark.bigquery.repackaged.org.apache.commons
               </shadedPattern>
+              <excludes>
+                <exclude>org.apache.commons.logging.*</exclude>
+              </excludes>
             </relocation>
             <relocation>
               <pattern>org.apache.http</pattern>
