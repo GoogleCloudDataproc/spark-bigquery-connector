@@ -12,13 +12,15 @@ public class Spark32BigQueryPartitionReaderFactory implements PartitionReaderFac
   @Override
   public PartitionReader<InternalRow> createReader(InputPartition partition) {
     InputPartitionContext<InternalRow> ctx = ((BigQueryInputPartition) partition).getContext();
-    return new Spark32BigQueryPartitionReader<>(ctx.createPartitionReaderContext());
+    return new Spark32BigQueryPartitionReader<>(
+        ctx.createPartitionReaderContext(), ctx.getEstimatedBytesScanned());
   }
 
   @Override
   public PartitionReader<ColumnarBatch> createColumnarReader(InputPartition partition) {
     InputPartitionContext<ColumnarBatch> ctx = ((BigQueryInputPartition) partition).getContext();
-    return new Spark32BigQueryPartitionReader<>(ctx.createPartitionReaderContext());
+    return new Spark32BigQueryPartitionReader<>(
+        ctx.createPartitionReaderContext(), ctx.getEstimatedBytesScanned());
   }
 
   @Override

@@ -22,6 +22,7 @@ import com.google.cloud.bigquery.storage.v1.ReadRowsResponse;
 import com.google.cloud.spark.bigquery.ReadRowsResponseToInternalRowIteratorConverter;
 import java.util.Iterator;
 import java.util.Optional;
+import java.util.OptionalLong;
 import org.apache.spark.sql.catalyst.InternalRow;
 
 public class BigQueryInputPartitionContext implements InputPartitionContext<InternalRow> {
@@ -30,16 +31,19 @@ public class BigQueryInputPartitionContext implements InputPartitionContext<Inte
   private final String streamName;
   private final ReadRowsHelper.Options options;
   private final ReadRowsResponseToInternalRowIteratorConverter converter;
+  private final long estimatedBytesScanned;
 
   public BigQueryInputPartitionContext(
       BigQueryClientFactory bigQueryReadClientFactory,
       String streamName,
       ReadRowsHelper.Options options,
-      ReadRowsResponseToInternalRowIteratorConverter converter) {
+      ReadRowsResponseToInternalRowIteratorConverter converter,
+      long estimatedBytesScanned) {
     this.bigQueryReadClientFactory = bigQueryReadClientFactory;
     this.streamName = streamName;
     this.options = options;
     this.converter = converter;
+    this.estimatedBytesScanned = estimatedBytesScanned;
   }
 
   @Override
@@ -55,5 +59,10 @@ public class BigQueryInputPartitionContext implements InputPartitionContext<Inte
   @Override
   public boolean supportColumnarReads() {
     return false;
+  }
+
+  @Override
+  public OptionalLong getEstimatedBytesScanned() {
+    return OptionalLong.of(estimatedBytesScanned);
   }
 }
