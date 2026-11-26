@@ -30,8 +30,24 @@ import com.google.cloud.bigquery.TableId;
 import com.google.cloud.bigquery.TableInfo;
 import com.google.cloud.bigquery.TimePartitioning;
 import com.google.cloud.bigquery.connector.common.BigQueryUtil;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.util.Arrays;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import org.apache.avro.SchemaBuilder;
+import org.apache.avro.generic.GenericData;
+import org.apache.avro.generic.GenericRecord;
+import org.apache.avro.util.Utf8;
 import org.apache.spark.ml.linalg.SQLDataTypes;
+import org.apache.spark.sql.catalyst.InternalRow;
+import org.apache.spark.sql.catalyst.expressions.UnsafeProjection;
+import org.apache.spark.sql.catalyst.util.MapData;
 import org.apache.spark.sql.types.*;
 import org.junit.Test;
 
@@ -379,6 +395,27 @@ public class SchemaConverterTest {
                     .build(),
                 Metadata.empty());
     assertThat(field).isEqualTo(Optional.empty());
+  }
+
+  @Test
+  public void testConvertBigQueryMapToSparkMap_afterJavaSerialization() throws Exception {
+    // DataSource V1 reads compute the Spark schema on the executors, from a deserialized copy of
+    // the BigQuery schema.
+    ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+    try (ObjectOutputStream out = new ObjectOutputStream(bytes)) {
+      out.writeObject(getKeyValueRepeatedField());
+    }
+    Field deserialized;
+    try (ObjectInputStream in =
+        new ObjectInputStream(new ByteArrayInputStream(bytes.toByteArray()))) {
+      deserialized = (Field) in.readObject();
+    }
+    Optional<StructField> fieldOpt =
+        SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION)
+            .convertMap(deserialized, Metadata.empty());
+    assertThat(fieldOpt.isPresent()).isTrue();
+    assertThat(fieldOpt.get().dataType())
+        .isEqualTo(DataTypes.createMapType(DataTypes.LongType, DataTypes.StringType));
   }
 
   @Test
@@ -755,6 +792,116 @@ public class SchemaConverterTest {
     // Default is true
     assertThat(SchemaConvertersConfiguration.from(sparkConfig).getEnableArrowTimestampRebase())
         .isTrue();
+  }
+
+  @Test
+  public void testConvertAvroMaps() {
+    Field mapField =
+        Field.newBuilder(
+                "map",
+                LegacySQLTypeName.RECORD,
+                Field.newBuilder("key", LegacySQLTypeName.STRING).setMode(Mode.REQUIRED).build(),
+                Field.of("value", LegacySQLTypeName.INTEGER))
+            .setMode(Mode.REPEATED)
+            .build();
+    Schema bqSchema =
+        Schema.of(
+            mapField,
+            Field.of("struct", LegacySQLTypeName.RECORD, mapField),
+            Field.newBuilder("empty_map", LegacySQLTypeName.RECORD, mapField.getSubFields())
+                .setMode(Mode.REPEATED)
+                .build());
+    org.apache.avro.Schema entrySchema =
+        SchemaBuilder.record("entry")
+            .fields()
+            .requiredString("key")
+            .optionalLong("value")
+            .endRecord();
+    org.apache.avro.Schema structSchema =
+        SchemaBuilder.record("struct")
+            .fields()
+            .name("map")
+            .type()
+            .array()
+            .items(entrySchema)
+            .noDefault()
+            .endRecord();
+    org.apache.avro.Schema avroSchema =
+        SchemaBuilder.record("root")
+            .fields()
+            .name("map")
+            .type()
+            .array()
+            .items(entrySchema)
+            .noDefault()
+            .name("struct")
+            .type(structSchema)
+            .noDefault()
+            .name("empty_map")
+            .type()
+            .array()
+            .items(entrySchema)
+            .noDefault()
+            .endRecord();
+    List<GenericRecord> entries =
+        Arrays.asList(avroMapEntry(entrySchema, "a", 1L), avroMapEntry(entrySchema, "b", null));
+    GenericData.Record struct = new GenericData.Record(structSchema);
+    struct.put("map", entries);
+    GenericData.Record record = new GenericData.Record(avroSchema);
+    record.put("map", entries);
+    record.put("struct", struct);
+    record.put("empty_map", Arrays.asList());
+
+    SchemaConverters schemaConverters = SchemaConverters.from(SCHEMA_CONVERTERS_CONFIGURATION);
+    StructType sparkSchema = schemaConverters.toSpark(bqSchema);
+    Map<String, Long> expected = new LinkedHashMap<>();
+    expected.put("a", 1L);
+    expected.put("b", null);
+    // Without a requested schema, as in DataSource V2 reads, and with the Spark schema of the
+    // table as the requested schema, as in DataSource V1 reads.
+    for (Optional<StructType> requestedSchema :
+        Arrays.asList(Optional.<StructType>empty(), Optional.of(sparkSchema))) {
+      InternalRow row = toUnsafeRow(schemaConverters, bqSchema, record, requestedSchema);
+      assertThat(toJavaMap(row.getMap(0))).containsExactlyEntriesIn(expected).inOrder();
+      assertThat(toJavaMap(row.getStruct(1, 1).getMap(0)))
+          .containsExactlyEntriesIn(expected)
+          .inOrder();
+      assertThat(toJavaMap(row.getMap(2))).isEmpty();
+    }
+  }
+
+  private static GenericRecord avroMapEntry(
+      org.apache.avro.Schema entrySchema, String key, Long value) {
+    GenericData.Record entry = new GenericData.Record(entrySchema);
+    entry.put("key", new Utf8(key));
+    entry.put("value", value);
+    return entry;
+  }
+
+  private static Map<String, Long> toJavaMap(MapData map) {
+    Map<String, Long> result = new LinkedHashMap<>();
+    for (int i = 0; i < map.numElements(); i++) {
+      result.put(
+          map.keyArray().getUTF8String(i).toString(),
+          map.valueArray().isNullAt(i) ? null : map.valueArray().getLong(i));
+    }
+    return result;
+  }
+
+  /**
+   * Converts an Avro record the way the Avro read path does, then copies it into an UnsafeRow as
+   * Spark does, which is where a value that doesn't match the column's Spark type surfaces.
+   */
+  private static InternalRow toUnsafeRow(
+      SchemaConverters schemaConverters,
+      Schema bqSchema,
+      GenericRecord record,
+      Optional<StructType> requestedSchema) {
+    List<String> names =
+        bqSchema.getFields().stream().map(Field::getName).collect(Collectors.toList());
+    InternalRow row =
+        schemaConverters.convertToInternalRow(bqSchema, names, record, requestedSchema);
+    return UnsafeProjection.create(schemaConverters.toSpark(bqSchema)).apply(row);
   }
 
   private StructField simpleStructField(String name, DataType dataType) {

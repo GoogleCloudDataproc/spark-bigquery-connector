@@ -24,6 +24,9 @@
 * PR #1567: `count()` and SQL `COUNT(*)` on a read with `snapshotTimeMillis` now count the table's
   rows as of the snapshot time, like the rows the read returns. Based on PR #1307, thanks
   @tom-s-powell !
+* PR #1569: Reads with `readDataFormat=AVRO` now convert BigQuery map-shaped `REPEATED` `RECORD`
+  columns into Spark `MapType` values (including maps nested in structs and arrays) when
+  `allowMapTypeConversion` is true, matching `readDataFormat=ARROW`.
 
 ## 0.46.1 - 2026-11-04
 

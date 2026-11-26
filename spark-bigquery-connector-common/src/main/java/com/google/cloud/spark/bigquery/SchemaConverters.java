@@ -38,7 +38,9 @@ import org.apache.avro.generic.GenericRecord;
 import org.apache.avro.util.Utf8;
 import org.apache.spark.sql.catalyst.InternalRow;
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow;
+import org.apache.spark.sql.catalyst.util.ArrayBasedMapData;
 import org.apache.spark.sql.catalyst.util.GenericArrayData;
+import org.apache.spark.sql.catalyst.util.MapData;
 import org.apache.spark.sql.types.*;
 import org.apache.spark.unsafe.types.UTF8String;
 
@@ -124,6 +126,9 @@ public class SchemaConverters {
     }
 
     if (field.getMode() == Field.Mode.REPEATED) {
+      if (isReadAsMap(field, userProvidedField)) {
+        return convertToMapData(field, (List<Object>) value, userProvidedField);
+      }
       // rather than recurring down we strip off the repeated mode
       // Due to serialization issues, reconstruct the type using reflection:
       // See: https://github.com/googleapis/google-cloud-java/issues/3942
@@ -143,6 +148,40 @@ public class SchemaConverters {
     }
 
     return convertByBigQueryType(field, value, userProvidedField);
+  }
+
+  /**
+   * Whether a REPEATED field is read as a Spark map: when the requested Spark type is a map, or,
+   * without a requested type, when {@link #convertMap} maps the field to a Spark map.
+   */
+  private boolean isReadAsMap(Field field, StructField userProvidedField) {
+    if (userProvidedField != null) {
+      return userProvidedField.dataType() instanceof MapType;
+    }
+    return isMapField(field);
+  }
+
+  private MapData convertToMapData(
+      Field field, List<Object> entries, StructField userProvidedField) {
+    Field keyField = field.getSubFields().get("key");
+    Field valueField = field.getSubFields().get("value");
+    StructField userProvidedKeyField = null;
+    StructField userProvidedValueField = null;
+    if (userProvidedField != null) {
+      MapType mapType = (MapType) userProvidedField.dataType();
+      userProvidedKeyField = new StructField("key", mapType.keyType(), false, Metadata.empty());
+      userProvidedValueField =
+          new StructField(
+              "value", mapType.valueType(), mapType.valueContainsNull(), Metadata.empty());
+    }
+    Object[] keys = new Object[entries.size()];
+    Object[] values = new Object[entries.size()];
+    for (int i = 0; i < entries.size(); i++) {
+      GenericRecord entry = (GenericRecord) entries.get(i);
+      keys[i] = convert(keyField, entry.get("key"), userProvidedKeyField);
+      values[i] = convert(valueField, entry.get("value"), userProvidedValueField);
+    }
+    return new ArrayBasedMapData(new GenericArrayData(keys), new GenericArrayData(values));
   }
 
   private StructField getStructFieldForRepeatedMode(StructField field) {
@@ -322,35 +361,42 @@ public class SchemaConverters {
   }
 
   Optional<StructField> convertMap(Field field, Metadata metadata) {
-    if (!configuration.getAllowMapTypeConversion()) {
-      return Optional.empty();
-    }
-    if (field.getMode() != Field.Mode.REPEATED) {
-      return Optional.empty();
-    }
-    if (field.getType() != LegacySQLTypeName.RECORD) {
+    if (!isMapField(field)) {
       return Optional.empty();
     }
     FieldList subFields = field.getSubFields();
-    if (subFields.size() != 2) {
-      return Optional.empty();
-    }
-    Set<String> subFieldNames = subFields.stream().map(Field::getName).collect(Collectors.toSet());
-    if (!subFieldNames.contains("key") || !subFieldNames.contains("value")) {
-      // no "key" or "value" fields
-      return Optional.empty();
-    }
     Field key = subFields.get("key");
     Field value = subFields.get("value");
-    // If the BigQuery 'key' field is NULLABLE, this cannot be safely converted
-    // to a Spark Map. It should remain an Array of Structs.
-    if (key.getMode() != Field.Mode.REQUIRED) {
-      return Optional.empty();
-    }
     MapType mapType = DataTypes.createMapType(convert(key).dataType(), convert(value).dataType());
     // The returned type is not nullable because the original field is a REPEATED, not NULLABLE.
     // There are some compromises we need to do as BigQuery has no native MAP type
     return Optional.of(new StructField(field.getName(), mapType, /* nullable */ false, metadata));
+  }
+
+  /** Whether a field is a REPEATED key/value RECORD that is converted to a Spark map. */
+  private boolean isMapField(Field field) {
+    if (!configuration.getAllowMapTypeConversion()) {
+      return false;
+    }
+    if (field.getMode() != Field.Mode.REPEATED) {
+      return false;
+    }
+    // equals() rather than ==, since a deserialized Field has its own LegacySQLTypeName instance.
+    if (!LegacySQLTypeName.RECORD.equals(field.getType())) {
+      return false;
+    }
+    FieldList subFields = field.getSubFields();
+    if (subFields == null || subFields.size() != 2) {
+      return false;
+    }
+    Set<String> subFieldNames = subFields.stream().map(Field::getName).collect(Collectors.toSet());
+    if (!subFieldNames.contains("key") || !subFieldNames.contains("value")) {
+      // no "key" or "value" fields
+      return false;
+    }
+    // If the BigQuery 'key' field is NULLABLE, this cannot be safely converted
+    // to a Spark Map. It should remain an Array of Structs.
+    return subFields.get("key").getMode() == Field.Mode.REQUIRED;
   }
 
   private DataType getDataType(Field field) {
